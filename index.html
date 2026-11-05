@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Painel ML Laser Brindes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* Layout: barra fixa no topo com abas; cada aba é uma seção de trabalho com resumo antes do detalhe. */
+:root{
+  --bg:#f6f4ee; --surface:#ffffff; --surface2:#efece3; --line:#d9d4c5; --line2:#c6c0ad;
+  --fg:#1d2230; --fg2:#525a6b; --fg3:#7d8494;
+  --accent:#1f4e79; --accent-fg:#ffffff; --accent-soft:#e3ecf5;
+  --ml:#e8c400; --ml-soft:#fff4bf;
+  --good:#1e7a46; --good-soft:#dff3e6; --warn:#a4660a; --warn-soft:#fbeed2; --bad:#b3261e; --bad-soft:#fae1df; --info:#365f8a; --info-soft:#e3ecf5; --mute:#6b7280; --mute-soft:#ebe9e2;
+  --display:'Sora',system-ui,sans-serif; --body:'Nunito Sans',system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(29,34,48,.06),0 4px 14px rgba(29,34,48,.05);
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#15181f; --surface:#1d2129; --surface2:#262b35; --line:#343a47; --line2:#454c5c;
+  --fg:#ecebe5; --fg2:#b5b9c4; --fg3:#858b99;
+  --accent:#8fb6dc; --accent-fg:#101827; --accent-soft:#223449;
+  --ml:#e8c400; --ml-soft:#4a4010;
+  --good:#6fcf97; --good-soft:#1c3a2a; --warn:#e8b457; --warn-soft:#3f3015; --bad:#f28b82; --bad-soft:#44201e; --info:#8fb6dc; --info-soft:#223449; --mute:#9aa0ad; --mute-soft:#2c313b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#15181f; --surface:#1d2129; --surface2:#262b35; --line:#343a47; --line2:#454c5c;
+  --fg:#ecebe5; --fg2:#b5b9c4; --fg3:#858b99;
+  --accent:#8fb6dc; --accent-fg:#101827; --accent-soft:#223449;
+  --ml:#e8c400; --ml-soft:#4a4010;
+  --good:#6fcf97; --good-soft:#1c3a2a; --warn:#e8b457; --warn-soft:#3f3015; --bad:#f28b82; --bad-soft:#44201e; --info:#8fb6dc; --info-soft:#223449; --mute:#9aa0ad; --mute-soft:#2c313b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3,h4{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:1.15rem;font-weight:600}
+h2{font-size:1.35rem;font-weight:600}
+h3{font-size:1.05rem;font-weight:600}
+h4{font-size:.9rem;font-weight:600;color:var(--fg2);text-transform:uppercase;letter-spacing:.06em}
+p{margin:0}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.muted{color:var(--fg3)}
+.small{font-size:.85rem}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hdr-in{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .dot{width:12px;height:12px;border-radius:3px;background:var(--ml);box-shadow:0 0 0 3px var(--ml-soft)}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--fg2);background:var(--surface2);padding:3px 10px;border-radius:999px}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--mute);display:inline-block}
+.status.ok i{background:var(--good)} .status.local i{background:var(--warn)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;flex:1 1 100%;scrollbar-width:none;margin-top:2px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs a{flex:0 0 auto;text-decoration:none;color:var(--fg2);padding:7px 12px;border-radius:8px;font-weight:600;font-size:.9rem;white-space:nowrap}
+nav.tabs a.on{background:var(--accent);color:var(--accent-fg)}
+nav.tabs a .badge{margin-left:6px}
+main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 60px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:18px}
+section[data-view]{display:grid;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.card.flat{box-shadow:none}
+.card h3{margin-bottom:10px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.tiles{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.tile .lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);font-weight:700}
+.tile .val{font-family:var(--display);font-size:1.4rem;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile .sub{font-size:.8rem;color:var(--fg2);margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--mute-soft);color:var(--mute);white-space:nowrap;line-height:1.4}
+.badge.good{background:var(--good-soft);color:var(--good)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge.info{background:var(--info-soft);color:var(--info)}
+.badge.ml{background:var(--ml-soft);color:var(--fg)}
+.alert{border-left:4px solid var(--warn);background:var(--warn-soft);padding:10px 12px;border-radius:6px;font-size:.9rem}
+.alert.bad{border-color:var(--bad);background:var(--bad-soft)}
+.alert.good{border-color:var(--good);background:var(--good-soft)}
+.alert.info{border-color:var(--info);background:var(--info-soft)}
+.alerts{display:grid;gap:8px}
+.tbl-wrap{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--fg3);font-weight:700;white-space:nowrap;background:var(--surface)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--surface2)}
+tr.open td{background:var(--accent-soft)}
+tr.detail td{background:var(--surface2);padding:12px 14px}
+.dwrap{position:sticky;left:0;width:min(calc(100vw - 66px),1206px);max-width:100%}
+tr.pk td{color:var(--fg2);font-style:italic}
+td .t{display:block;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td .sku{font-weight:700}
+.calc{display:grid;grid-template-columns:1fr auto;gap:3px 18px;max-width:560px;font-size:.9rem}
+.calc .k{color:var(--fg2)} .calc .v{text-align:right;font-variant-numeric:tabular-nums}
+.calc .sum{border-top:1px solid var(--line2);padding-top:4px;font-weight:700}
+.calc .sum2{border-top:2px solid var(--fg);padding-top:5px;font-weight:700;font-size:1rem}
+.calc .note{grid-column:1/-1;color:var(--fg3);font-size:.8rem}
+.rules{display:grid;gap:6px;max-width:700px}
+.rule{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:start;font-size:.9rem;padding:6px 8px;border-radius:6px;background:var(--surface)}
+.rule .ic{font-weight:700;text-align:center}
+.rule.ok .ic{color:var(--good)} .rule.no .ic{color:var(--bad)} .rule.na .ic{color:var(--mute)} .rule.warn .ic{color:var(--warn)}
+.rule .m{font-variant-numeric:tabular-nums;color:var(--fg2);white-space:nowrap}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end}
+.form label{display:grid;gap:4px;font-size:.78rem;font-weight:700;color:var(--fg2);text-transform:uppercase;letter-spacing:.04em;min-width:0}
+.form .full{grid-column:1/-1}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line2);border-radius:7px;background:var(--surface);font-weight:400;text-transform:none;letter-spacing:0}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);cursor:pointer;font-weight:700;font-size:.9rem;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:4px 9px;font-size:.8rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.filters label{display:grid;gap:3px;font-size:.72rem;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.04em}
+.filters input,.filters select{padding:6px 8px;min-width:120px}
+.drop{border:2px dashed var(--line2);border-radius:var(--r);padding:28px 16px;text-align:center;background:var(--surface);cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop input{display:none}
+.chart{width:100%;height:auto;display:block}
+.chart .bar{fill:var(--accent)}
+.chart .bar:hover{fill:var(--ml)}
+.chart text{fill:var(--fg2);font-size:11px;font-family:var(--body)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.tip{position:fixed;z-index:20;background:var(--fg);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:.8rem;pointer-events:none;display:none;max-width:260px}
+.how{max-width:72ch;font-size:.95rem;display:grid;gap:10px}
+.how code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:.88em}
+.how ol,.how ul{margin:0;padding-left:20px}
+.empty{padding:28px;text-align:center;color:var(--fg2);border:1px dashed var(--line2);border-radius:var(--r)}
+.meter{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:3px}
+details summary{cursor:pointer;font-weight:700;color:var(--fg2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.9rem}
+.kv b{color:var(--fg2);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:600;display:none;max-width:90vw}
+.inline-edit{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));align-items:end;margin-top:10px}
+.inline-edit label{display:grid;gap:3px;font-size:.72rem;font-weight:700;color:var(--fg3);text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){ .tile .val{font-size:1.2rem} .calc{grid-template-columns:1fr auto} }
+</style>
+
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="brand"><span class="dot"></span><h1>Painel ML · Laser Brindes</h1></div>
+    <span id="sync" class="status"><i></i><span>Conectando…</span></span>
+    <nav class="tabs" id="tabs">
+      <a href="#visao" data-v="visao">Visão geral</a>
+      <a href="#importar" data-v="importar">Importar</a>
+      <a href="#vendas" data-v="vendas">Vendas</a>
+      <a href="#anuncios" data-v="anuncios">Anúncios</a>
+      <a href="#ads" data-v="ads">Ads</a>
+      <a href="#gastos" data-v="gastos">Gastos</a>
+      <a href="#fechamentos" data-v="fechamentos">Fechamentos</a>
+      <a href="#full" data-v="full">Full</a>
+      <a href="#regras" data-v="regras">Regras e cálculo</a>
+    </nav>
+  </div>
+</header>
+<main><div class="wrap" id="app">
+  <div class="empty">Carregando o painel…</div>
+</div></main>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/*PARSER-START*/
+const PT_MONTHS={janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+const PT_MON3={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+const MES_NOME=['','jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function norm(s){return String(s==null?'':s).normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();}
+function toNum(v){
+  if(v==null||v==='')return null;
+  if(typeof v==='number')return isFinite(v)?v:null;
+  let s=String(v).trim(); if(s==='-'||s===''||s==='—')return null;
+  s=s.replace(/[R$\s%]/g,'');
+  if(/,\d{1,2}$/.test(s))s=s.replace(/\./g,'').replace(',','.');
+  else if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');
+  const n=parseFloat(s);return isFinite(n)?n:null;
+}
+function pad(n){return String(n).padStart(2,'0');}
+function isoDate(y,m,d){return y+'-'+pad(m)+'-'+pad(d);}
+function parseDateAny(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date){if(isNaN(v))return null;return isoDate(v.getFullYear(),v.getMonth()+1,v.getDate())+'T'+pad(v.getHours())+':'+pad(v.getMinutes());}
+  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400*1000));return isoDate(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())+'T'+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes());}
+  const s=norm(v);
+  let m=s.match(/(\d{1,2}) de ([a-z]+) de (\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(m&&PT_MONTHS[m[2]])return isoDate(+m[3],PT_MONTHS[m[2]],+m[1])+(m[4]?'T'+pad(+m[4])+':'+m[5]:'');
+  m=s.match(/(\d{1,2})-([a-z]{3})-(\d{4})/);
+  if(m&&PT_MON3[m[2]])return isoDate(+m[3],PT_MON3[m[2]],+m[1]);
+  m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(m)return isoDate(+m[3],+m[2],+m[1])+(m[4]?'T'+pad(+m[4])+':'+m[5]:'');
+  m=s.match(/(\d{4})-(\d{2})-(\d{2})(?:[t ](\d{2}):(\d{2}))?/);
+  if(m)return m[1]+'-'+m[2]+'-'+m[3]+(m[4]?'T'+m[4]+':'+m[5]:'');
+  m=s.match(/^(\d{1,2}) ([a-z]+) (\d{4})$/);
+  if(m&&PT_MONTHS[m[2]])return isoDate(+m[3],PT_MONTHS[m[2]],+m[1]);
+  return null;
+}
+function parseMonth(v){ // "novembro 2026" -> "2026-11"
+  const s=norm(v); const m=s.match(/^([a-z]+)(?: de)? (\d{4})$/); if(m&&PT_MONTHS[m[1]])return m[2]+'-'+pad(PT_MONTHS[m[1]]);
+  const m2=s.match(/^(\d{2})\/(\d{4})$/); if(m2)return m2[2]+'-'+m2[1]; return null;
+}
+function findHeader(aoa,required){
+  let best=-1,bestScore=0;
+  for(let i=0;i<Math.min(aoa.length,30);i++){
+    const cells=(aoa[i]||[]).map(norm);
+    let score=0;for(const re of required)if(cells.some(c=>re.test(c)))score++;
+    if(score>bestScore){bestScore=score;best=i;}
+  }
+  return bestScore>=2?best:-1;
+}
+const COLS_VENDAS={
+  id:[/^n\W*o?\.?\s*de venda/,/^numero d[ae] venda/,/^id da venda/],
+  dt:[/^data d[ae] venda/],
+  st:[/^estado$/,/^status$/],
+  un:[/^unidades/],
+  rp:[/^receita por produtos/],
+  ra:[/acrescimo no preco/],
+  tp:[/taxa de parcelamento/],
+  tv:[/^tarifa de venda/],
+  re:[/^receita por envio/],
+  te:[/^tarifas? de envio/],
+  db:[/^descontos e bonus/,/^descontos$/],
+  ca:[/^cancelamentos e reembolsos/],
+  tot:[/^total \(/,/^total$/],
+  mf:[/^mes de faturamento/],
+  pub:[/^venda por publicidade/],
+  sku:[/^sku$/],
+  tit:[/^titulo do anuncio/],
+  mlb:[/^# de anuncio/,/^codigo do anuncio/,/^n[^a-z]*do anuncio/,/^id do anuncio/],
+  ent:[/^forma de entrega/],
+  pu:[/^preco unitario/],
+  vr:[/^variante/],
+};
+const COLS_ADS={
+  de:[/^desde/,/^data inicial/,/^de$/],
+  ate:[/^ate/,/^data final/],
+  camp:[/^campanha/],
+  tit:[/^titulo/],
+  mlb:[/^codigo do anuncio/,/^id do anuncio/,/^# de anuncio/,/^anuncio$/],
+  st:[/^status/],
+  imp:[/^impressoes/],
+  clk:[/^cliques/],
+  cpc:[/^cpc/],
+  ctr:[/^ctr/],
+  cvr:[/^cvr/],
+  rec:[/^receita(?!\s*por)/],
+  inv:[/^investimento/,/^gasto/],
+  acos:[/^acos/],
+  roas:[/^roas/],
+  vd:[/^vendas diretas/],
+  vi:[/^vendas indiretas/],
+  vp:[/^vendas por publicidade/],
+  rd:[/^receita por vendas diretas/],
+  ri:[/^receita por vendas indiretas/],
+};
+function mapCols(headerRow,spec){
+  const cells=headerRow.map(norm);const out={};
+  for(const k in spec){out[k]=-1;for(const re of spec[k]){const i=cells.findIndex(c=>re.test(c));if(i>=0){out[k]=i;break;}}}
+  return out;
+}
+function detectSheet(aoa){
+  const hv=findHeader(aoa,[COLS_VENDAS.id[0],COLS_VENDAS.rp[0],COLS_VENDAS.tot[0],COLS_VENDAS.sku[0],COLS_VENDAS.tit[0]]);
+  const ha=findHeader(aoa,[COLS_ADS.imp[0],COLS_ADS.inv[0],COLS_ADS.clk[0],COLS_ADS.camp[0]]);
+  if(hv>=0&&(ha<0||hv<=ha)){const c=mapCols(aoa[hv],COLS_VENDAS);if(c.id>=0&&c.tot>=0)return{tipo:'vendas',h:hv,c};}
+  if(ha>=0){const c=mapCols(aoa[ha],COLS_ADS);if(c.imp>=0&&c.inv>=0)return{tipo:'ads',h:ha,c};}
+  return null;
+}
+function cell(row,i){return i<0?null:(row[i]==null?null:row[i]);}
+function str(v){return v==null?'':String(v).trim();}
+function parseVendas(aoa,det,impId){
+  const c=det.c;const rows=[];let pendingParent=null,pendingN=0;
+  for(let i=det.h+1;i<aoa.length;i++){
+    const r=aoa[i]||[];const id=str(cell(r,c.id));if(!id||!/\d{4,}/.test(id))continue;
+    const st=str(cell(r,c.st));
+    const o={id,dt:parseDateAny(cell(r,c.dt)),st,un:toNum(cell(r,c.un)),rp:toNum(cell(r,c.rp)),ra:toNum(cell(r,c.ra)),tp:toNum(cell(r,c.tp)),tv:toNum(cell(r,c.tv)),re:toNum(cell(r,c.re)),te:toNum(cell(r,c.te)),db:toNum(cell(r,c.db)),ca:toNum(cell(r,c.ca)),tot:toNum(cell(r,c.tot)),
+      pub:/^sim$/i.test(str(cell(r,c.pub))),sku:str(cell(r,c.sku)),tit:str(cell(r,c.tit)),imp:impId};
+    const mlb=str(cell(r,c.mlb));if(mlb)o.mlb=mlb;
+    const ent=str(cell(r,c.ent));if(ent)o.ent=ent;
+    const pu=toNum(cell(r,c.pu));if(pu!=null)o.pu=pu;
+    const vr=str(cell(r,c.vr));if(vr)o.vr=vr;
+    const mfv=cell(r,c.mf);
+    if(mfv!=null&&str(mfv)!==''){const mon=parseMonth(mfv);if(mon)o.mfm=mon;else{const d=parseDateAny(mfv);if(d)o.mf=d.slice(0,10);}}
+    const pk=norm(st).match(/^pacote de (\d+) produtos?/);
+    if(pk){o.pk='P';o.n=+pk[1];pendingParent=o.id;pendingN=+pk[1];}
+    else if(pendingN>0){o.pk='C';o.pid=pendingParent;pendingN--;if(pendingN===0)pendingParent=null;}
+    rows.push(o);
+  }
+  return rows;
+}
+function parseAds(aoa,det,impId){
+  const c=det.c;const rows=[];
+  for(let i=det.h+1;i<aoa.length;i++){
+    const r=aoa[i]||[];const mlb=str(cell(r,c.mlb));const tit=str(cell(r,c.tit));
+    if(!mlb&&!tit)continue;
+    const imp=toNum(cell(r,c.imp));if(imp==null&&toNum(cell(r,c.inv))==null)continue;
+    const de=(parseDateAny(cell(r,c.de))||'').slice(0,10),ate=(parseDateAny(cell(r,c.ate))||'').slice(0,10);
+    const camp=str(cell(r,c.camp));
+    const o={key:(mlb||norm(tit))+'|'+norm(camp)+'|'+de+'|'+ate,mlb,tit,camp,st:str(cell(r,c.st)),de,ate,imp:imp||0,clk:toNum(cell(r,c.clk))||0,inv:toNum(cell(r,c.inv))||0,rec:toNum(cell(r,c.rec))||0,vd:toNum(cell(r,c.vd))||0,vi:toNum(cell(r,c.vi))||0,vp:toNum(cell(r,c.vp)),rd:toNum(cell(r,c.rd))||0,ri:toNum(cell(r,c.ri))||0,imp_id:impId};
+    if(o.vp==null)o.vp=o.vd+o.vi;
+    rows.push(o);
+  }
+  return rows;
+}
+function parseWorkbook(wb,impId){
+  const out=[];
+  for(const name of wb.SheetNames){
+    const ws=wb.Sheets[name];if(!ws||!ws['!ref'])continue;
+    const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+    const det=detectSheet(aoa);if(!det)continue;
+    if(det.tipo==='vendas'){const rows=parseVendas(aoa,det,impId);if(rows.length)out.push({tipo:'vendas',sheet:name,rows});}
+    else{const rows=parseAds(aoa,det,impId);if(rows.length)out.push({tipo:'ads',sheet:name,rows});}
+  }
+  return out;
+}
+/*PARSER-END*/
+
+/*COMPUTE-START*/
+const DEFAULT_CFG={
+  embalagemPadrao:0, custoPadraoPct:0, acosLimitePadrao:25,
+  adsMinImpressoes:1000, adsMinCliques:20, adsCtrFraco:0.25, adsCvrFraco:1.5, adsFolga:70, adsInvestSemVenda:15,
+  fullMinUnidades30:20, fullMinMargem:20, fullMaxCancel:10, fullMinVendas:10, fullPrecoFreteGratis:79,
+};
+const TIPOS_GASTO=['Ads','Seguidores ML','Embalagem','Frete','Fixo','Imposto','Produto','Outros'];
+function b64url(s){try{return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')||'_';}catch(e){return '_';}}
+function pidOf(sku){return 'p_'+b64url(sku||'');}
+function isCancel(st){const s=norm(st);if(/te demos o dinheiro|liberamos o dinheiro/.test(s))return false;return /cancelad|reembolso para o comprador|devolvemos o dinheiro|devolucao finalizada|devolvido/.test(s);}
+function dayDiff(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
+function addDays(d,n){const t=new Date(Date.parse(d+'T00:00:00Z')+n*86400000);return t.toISOString().slice(0,10);}
+function overlapDays(a1,a2,b1,b2){const s=a1>b1?a1:b1,e=a2<b2?a2:b2;return e<s?0:dayDiff(s,e)+1;}
+function median(arr){if(!arr.length)return null;const a=[...arr].sort((x,y)=>x-y);const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function titleKey(t){return norm(t).replace(/[^a-z0-9 ]/g,'').trim();}
+function titlesMatch(a,b){if(!a||!b)return false;if(a===b)return true;const s=a.length<b.length?a:b,l=a.length<b.length?b:a;return l.startsWith(s)&&(l.length-s.length)<=45;}
+function monthEnd(ym){const [y,m]=ym.split('-').map(Number);return new Date(Date.UTC(y,m,0)).getUTCDate();}
+function windowOf(d){const ym=d.slice(0,7),day=+d.slice(8,10);let seg,ini,fim;const me=monthEnd(ym);
+  if(day<=7){seg=1;ini=1;fim=7;}else if(day<=14){seg=2;ini=8;fim=14;}else if(day<=21){seg=3;ini=15;fim=21;}else{seg=4;ini=22;fim=me;}
+  return{key:ym+'-'+seg,ini:ym+'-'+pad(ini),fim:ym+'-'+pad(fim),label:pad(ini)+'/'+ym.slice(5,7)+' a '+pad(fim)+'/'+ym.slice(5,7)};}
+
+function analyze(state){
+  const cfg=Object.assign({},DEFAULT_CFG,state.config||{});
+  const prods=state.produtos||{};const map=state.mapeamento||{};
+  const custos=Object.values(state.custos||{}).map(c=>Object.assign({},c));
+  const rows=Object.values(state.vendas||{}).map(r=>Object.assign({},r));
+  rows.sort((a,b)=>(b.dt||'')<(a.dt||'')?-1:(b.dt||'')>(a.dt||'')?1:0);
+  const byId={};rows.forEach(r=>{byId[r.id]=r;r.d=(r.dt||'').slice(0,10);r.cancel=isCancel(r.st);r.un=r.un||0;});
+  // preço unitário mediano por SKU (linhas normais)
+  const priceBy={};
+  rows.forEach(r=>{if(r.pk||r.cancel||!(r.un>0)||r.rp==null)return;(priceBy[r.sku]=priceBy[r.sku]||[]).push(r.rp/r.un);});
+  const medPrice={};for(const k in priceBy)medPrice[k]=median(priceBy[k]);
+  // filhos de pacote: rateio
+  const kids={};rows.forEach(r=>{if(r.pk==='C'&&r.pid)(kids[r.pid]=kids[r.pid]||[]).push(r);});
+  const MONEY=['rp','ra','tp','tv','re','te','db','ca','tot'];
+  rows.forEach(r=>{r.eff={};MONEY.forEach(k=>r.eff[k]=r[k]||0);r.share=1;});
+  for(const pid in kids){const p=byId[pid];if(!p)continue;const ks=kids[pid];
+    const w=ks.map(k=>k.un*(medPrice[k.sku]||k.pu||1));const sw=w.reduce((a,b)=>a+b,0)||ks.length;
+    ks.forEach((k,i)=>{k.share=sw?w[i]/sw:1/ks.length;MONEY.forEach(m=>k.eff[m]=(p[m]||0)*k.share);k.rateado=true;k.cancel=k.cancel||p.cancel;k.pub=k.pub||p.pub;if(!k.mf&&p.mf)k.mf=p.mf;if(!k.mfm&&p.mfm)k.mfm=p.mfm;});
+    p.un=ks.reduce((a,k)=>a+k.un,0);p.kids=ks;}
+  const eff=rows.filter(r=>r.pk!=='P'); // linhas que representam um produto vendido
+  const money=rows.filter(r=>r.pk!=='C'); // linhas que carregam dinheiro (normais + pacote pai)
+  const dates=eff.map(r=>r.d).filter(Boolean).sort();
+  const minD=dates[0]||null,maxD=dates[dates.length-1]||null;
+  // Ads: linhas do relatório
+  const adsRows=Object.values(state.ads||{}).map(r=>Object.assign({},r));
+  // título -> sku (a partir das vendas)
+  const titSku={};eff.forEach(r=>{if(!r.sku||!r.tit)return;const k=titleKey(r.tit);titSku[k]=titSku[k]||{};titSku[k][r.sku]=(titSku[k][r.sku]||0)+1;});
+  const titKeys=Object.keys(titSku);
+  const mlbSku={};eff.forEach(r=>{if(r.mlb&&r.sku)mlbSku[r.mlb]=r.sku;});
+  function skuForAd(a){
+    if(map[a.mlb])return{sku:map[a.mlb],como:'manual'};
+    if(a.mlb&&mlbSku[a.mlb])return{sku:mlbSku[a.mlb],como:'código'};
+    for(const pid in prods){const p=prods[pid];if(p.mlbs&&p.mlbs.includes(a.mlb))return{sku:p.sku,como:'cadastro'};}
+    const k=titleKey(a.tit);let best=null;
+    for(const tk of titKeys){if(titlesMatch(k,tk)){const cands=titSku[tk];const sku=Object.keys(cands).sort((x,y)=>cands[y]-cands[x])[0];if(!best||tk.length>best.len)best={sku,len:tk.length};}}
+    if(best)return{sku:best.sku,como:'título'};
+    return{sku:null,como:null};
+  }
+  adsRows.forEach(a=>{const m=skuForAd(a);a.sku=m.sku;a.como=m.como;a.ctr=a.imp?a.clk/a.imp*100:null;a.cvr=a.clk?a.vp/a.clk*100:null;a.acos=a.rec?a.inv/a.rec*100:null;a.roas=a.inv?a.rec/a.inv:null;});
+  const adsDe=adsRows.map(a=>a.de).filter(Boolean).sort()[0]||null;const adsAte=adsRows.map(a=>a.ate).filter(Boolean).sort().pop()||null;
+  // investimento por SKU e vendas por publicidade no período do Ads
+  const adsInvBy={};adsRows.forEach(a=>{if(a.sku)adsInvBy[a.sku]=(adsInvBy[a.sku]||0)+a.inv;});
+  const pubCountBy={};eff.forEach(r=>{if(!r.pub||r.cancel)return;if(adsDe&&adsAte&&(r.d<adsDe||r.d>adsAte))return;pubCountBy[r.sku]=(pubCountBy[r.sku]||0)+1;});
+  const adsPerSale={};for(const s in adsInvBy){adsPerSale[s]=pubCountBy[s]?adsInvBy[s]/pubCountBy[s]:0;}
+  // custos fixos rateados por venda
+  const fixos=custos.filter(c=>c.tipo!=='Ads'&&c.tipo!=='Produto'&&c.ini&&c.fim&&c.valor);
+  fixos.forEach(c=>{c.nVendas=eff.filter(r=>!r.cancel&&r.d>=c.ini&&r.d<=c.fim).length;});
+  // custo por linha
+  eff.forEach(r=>{
+    const p=prods[pidOf(r.sku)]||{};
+    r.custoUnit=p.custo!=null&&p.custo!==''?+p.custo:null;
+    r.custoProd=r.custoUnit!=null?r.custoUnit*r.un:(cfg.custoPadraoPct?r.eff.rp*cfg.custoPadraoPct/100:0);
+    r.custoEstimado=r.custoUnit==null;
+    r.emb=r.cancel?0:(p.emb!=null&&p.emb!==''?+p.emb:+cfg.embalagemPadrao||0);
+    r.ads=r.pub&&!r.cancel?(adsPerSale[r.sku]||0):0;
+    r.fixo=0;if(!r.cancel)fixos.forEach(c=>{if(r.d>=c.ini&&r.d<=c.fim&&c.nVendas)r.fixo+=c.valor/c.nVendas;});
+    r.tarifas=r.eff.tv+r.eff.tp+r.eff.te+r.eff.re+r.eff.db+r.eff.ra; // líquido de tarifas, envio e bônus
+    r.lucro=r.eff.tot-r.custoProd-r.emb-r.ads-r.fixo;
+  });
+  rows.forEach(r=>{if(r.pk==='P'){const ks=r.kids||[];r.lucro=ks.reduce((a,k)=>a+k.lucro,0);r.custoProd=ks.reduce((a,k)=>a+k.custoProd,0);r.emb=ks.reduce((a,k)=>a+k.emb,0);r.ads=ks.reduce((a,k)=>a+k.ads,0);r.fixo=ks.reduce((a,k)=>a+k.fixo,0);}});
+  // agregados por SKU
+  const d30=maxD?addDays(maxD,-29):null,d60=maxD?addDays(maxD,-59):null;
+  const skus={};
+  eff.forEach(r=>{
+    const s=skus[r.sku]||(skus[r.sku]={sku:r.sku,pid:pidOf(r.sku),tits:{},n:0,nCancel:0,un:0,rp:0,tarifas:0,tot:0,custoProd:0,emb:0,ads:0,fixo:0,lucro:0,nPub:0,un30:0,un30prev:0,n30:0,first:null,last:null,ents:{},custoEstimado:false,mlbs:{}});
+    if(r.tit)s.tits[r.tit]=(s.tits[r.tit]||0)+1;if(r.mlb)s.mlbs[r.mlb]=1;if(r.ent)s.ents[r.ent]=(s.ents[r.ent]||0)+1;
+    s.rp+=r.eff.rp;s.tarifas+=r.tarifas;s.tot+=r.eff.tot;s.custoProd+=r.custoProd;s.emb+=r.emb;s.ads+=r.ads;s.fixo+=r.fixo;s.lucro+=r.lucro;
+    if(r.custoEstimado)s.custoEstimado=true;
+    if(r.cancel){s.nCancel++;}else{s.n++;s.un+=r.un;if(r.pub)s.nPub++;if(d30&&r.d>=d30){s.un30+=r.un;s.n30++;}else if(d60&&r.d>=d60){s.un30prev+=r.un;}}
+    if(r.d){if(!s.first||r.d<s.first)s.first=r.d;if(!s.last||r.d>s.last)s.last=r.d;}
+  });
+  const skuList=Object.values(skus);
+  skuList.forEach(s=>{
+    const p=prods[s.pid]||{};s.prod=p;
+    s.tit=Object.keys(s.tits).sort((a,b)=>s.tits[b]-s.tits[a])[0]||'';
+    s.nTotal=s.n+s.nCancel;s.cancelPct=s.nTotal?s.nCancel/s.nTotal*100:0;
+    s.ticket=s.n?s.rp/s.n:0;s.precoMed=s.un?s.rp/s.un:(medPrice[s.sku]||0);
+    s.margem=s.rp?s.lucro/s.rp*100:0;s.pubPct=s.n?s.nPub/s.n*100:0;
+    s.contrib=s.tot-s.custoProd-s.emb;s.limiteAcos=s.custoEstimado?+cfg.acosLimitePadrao:(s.rp?Math.max(0,s.contrib/s.rp*100):0);
+    s.limiteEstimado=s.custoEstimado;
+    s.adsRows=adsRows.filter(a=>a.sku===s.sku);
+    const m={imp:0,clk:0,inv:0,rec:0,vp:0};s.adsRows.forEach(a=>{m.imp+=a.imp;m.clk+=a.clk;m.inv+=a.inv;m.rec+=a.rec;m.vp+=a.vp;});
+    m.ctr=m.imp?m.clk/m.imp*100:null;m.cvr=m.clk?m.vp/m.clk*100:null;m.acos=m.rec?m.inv/m.rec*100:null;m.roas=m.inv?m.rec/m.inv:null;
+    m.lucroAds=m.rec*s.limiteAcos/100-m.inv;s.adsM=m;
+    s.adsVer=s.adsRows.length?adsVerdict(m,s.limiteAcos,cfg):null;
+    s.fullVer=fullVerdict(s,cfg);
+    s.fullNow=Object.keys(s.ents).some(e=>/full/i.test(e))||false;
+    s.base=norm(s.sku).replace(/semfull|full/g,'').replace(/0+(\d)/g,'$1').replace(/[^a-z0-9]/g,'');
+  });
+  adsRows.forEach(a=>{const s=a.sku?skus[a.sku]:null;a.limite=s?s.limiteAcos:+cfg.acosLimitePadrao;a.limiteEstimado=s?s.limiteEstimado:true;a.ver=adsVerdict(a,a.limite,cfg);a.lucroAds=a.rec*a.limite/100-a.inv;});
+  // pares FULL x SEM FULL
+  const pares={};skuList.forEach(s=>{if(/semfull/i.test(s.sku)||/full/i.test(s.sku)||true){(pares[s.base]=pares[s.base]||[]).push(s);}});
+  const paresList=Object.values(pares).filter(g=>g.length>1&&g.some(s=>/semfull/i.test(s.sku)));
+  // gastos: duplicados
+  custos.forEach(c=>{c.flags=[];});
+  for(let i=0;i<custos.length;i++)for(let j=i+1;j<custos.length;j++){
+    const a=custos[i],b=custos[j];if(a.tipo!==b.tipo)continue;
+    const ov=(a.ini&&a.fim&&b.ini&&b.fim)?overlapDays(a.ini,a.fim,b.ini,b.fim)>0:(!a.ini&&!b.ini);
+    const sameVal=Math.abs((+a.valor||0)-(+b.valor||0))<0.011;
+    const sameDesc=norm(a.desc)&&norm(a.desc)===norm(b.desc);
+    let msg=null;
+    if(sameVal&&ov)msg='mesmo valor e período sobreposto';
+    else if(sameDesc&&ov)msg='mesma descrição e período sobreposto';
+    else if(a.tipo==='Ads'&&ov)msg='dois gastos de Ads no mesmo período';
+    else if(sameVal&&sameDesc)msg='mesmo valor e descrição';
+    if(msg){a.flags.push({com:b,msg});b.flags.push({com:a,msg});}
+  }
+  const gastosTotal=custos.reduce((a,c)=>a+(+c.valor||0),0);
+  const gastosPorTipo={};custos.forEach(c=>{gastosPorTipo[c.tipo]=(gastosPorTipo[c.tipo]||0)+(+c.valor||0);});
+  // fechamentos (janelas por data de liberação)
+  const wins={};money.forEach(r=>{if(!r.mf)return;const w=windowOf(r.mf);const o=wins[w.key]||(wins[w.key]={...w,n:0,tot:0,rows:[]});o.n++;o.tot+=r.tot||0;o.rows.push(r);});
+  const fech=state.fechamentos||{};
+  const winList=Object.values(wins).sort((a,b)=>a.key<b.key?-1:1);
+  winList.forEach(w=>{w.gastos=[];w.gastoTot=0;custos.forEach(c=>{if(!c.ini||!c.fim||!c.valor)return;const od=overlapDays(c.ini,c.fim,w.ini,w.fim);if(!od)return;const dur=dayDiff(c.ini,c.fim)+1;const v=(+c.valor)*od/dur;w.gastos.push({c,dias:od,dur,v});w.gastoTot+=v;});
+    w.liquido=w.tot-w.gastoTot;const f=fech[w.key]||{};w.recebido=+f.recebido||0;w.obs=f.obs||'';w.faltam=w.liquido-w.recebido;});
+  const fatMes={};money.forEach(r=>{if(!r.mfm)return;const o=fatMes[r.mfm]||(fatMes[r.mfm]={ym:r.mfm,n:0,tot:0});o.n++;o.tot+=r.tot||0;});
+  const vendMes={};money.forEach(r=>{if(!r.d)return;const ym=r.d.slice(0,7);const o=vendMes[ym]||(vendMes[ym]={ym,n:0,rp:0,tot:0,lucro:0,un:0});o.n++;o.rp+=r.rp||0;o.tot+=r.tot||0;o.lucro+=r.lucro||0;o.un+=r.un||0;});
+  // totais
+  const T={n:eff.filter(r=>!r.cancel).length,nCancel:eff.filter(r=>r.cancel).length,un:0,rp:0,tot:0,custoProd:0,emb:0,adsAttr:0,fixo:0,lucroLinhas:0};
+  eff.forEach(r=>{if(!r.cancel)T.un+=r.un;T.rp+=r.eff.rp;T.tot+=r.eff.tot;T.custoProd+=r.custoProd;T.emb+=r.emb;T.adsAttr+=r.ads;T.fixo+=r.fixo;T.lucroLinhas+=r.lucro;});
+  T.gastos=gastosTotal;T.lucro=T.tot-T.custoProd-T.emb-gastosTotal;T.margem=T.rp?T.lucro/T.rp*100:0;
+  const adsT={imp:0,clk:0,inv:0,rec:0,vp:0,semSku:0,semVenda:0};adsRows.forEach(a=>{adsT.imp+=a.imp;adsT.clk+=a.clk;adsT.inv+=a.inv;adsT.rec+=a.rec;adsT.vp+=a.vp;if(!a.sku)adsT.semSku+=a.inv;});
+  for(const s in adsInvBy)if(!pubCountBy[s])adsT.semVenda+=adsInvBy[s];
+  adsT.acos=adsT.rec?adsT.inv/adsT.rec*100:null;adsT.roas=adsT.inv?adsT.rec/adsT.inv:null;
+  const semCusto=skuList.filter(s=>s.custoEstimado&&s.n>0);
+  return{cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,adsPerSale,pubCountBy,adsInvBy,medPrice};
+}
+function adsVerdict(m,limite,cfg){
+  const notes=[];
+  if(m.ctr!=null&&m.imp>=cfg.adsMinImpressoes&&m.ctr<cfg.adsCtrFraco)notes.push('CTR baixo: aparece mas poucos clicam (foto/título/preço)');
+  if(m.cvr!=null&&m.clk>=cfg.adsMinCliques&&m.cvr<cfg.adsCvrFraco)notes.push('CVR baixo: clicam mas não compram (preço, frete, descrição, avaliações)');
+  if(m.inv===0&&m.imp<cfg.adsMinImpressoes)return{code:'sem',label:'Sem veiculação',cls:'',notes,why:'Nenhum investimento e quase nenhuma impressão no período.'};
+  if(m.imp<cfg.adsMinImpressoes&&m.clk<cfg.adsMinCliques)return{code:'pouco',label:'Pouca exposição',cls:'',notes,why:`Menos de ${cfg.adsMinImpressoes} impressões e ${cfg.adsMinCliques} cliques: ainda não dá para julgar.`};
+  if(m.rec>0){
+    const acos=m.inv/m.rec*100;
+    if(acos>limite)return{code:'nao',label:'Não compensa',cls:'bad',notes,why:`ACOS ${acos.toFixed(1)}% acima do limite de ${limite.toFixed(1)}%: o Ads consome toda a margem do produto.`};
+    if(acos>limite*cfg.adsFolga/100)return{code:'limite',label:'No limite',cls:'warn',notes,why:`ACOS ${acos.toFixed(1)}% perto do limite de ${limite.toFixed(1)}% (acima de ${cfg.adsFolga}% dele). Sobra pouco lucro.`};
+    const v={code:'ok',label:'Compensa',cls:'good',notes,why:`ACOS ${acos.toFixed(1)}% bem abaixo do limite de ${limite.toFixed(1)}%: cada real em Ads volta com lucro.`};
+    if(notes.length){v.label='Compensa, mas fraco';v.cls='warn';}
+    return v;
+  }
+  if(m.inv>=cfg.adsInvestSemVenda)return{code:'nao',label:'Não compensa',cls:'bad',notes,why:`Investiu R$ ${m.inv.toFixed(2)} e não gerou nenhuma venda por publicidade.`};
+  if(m.clk>=cfg.adsMinCliques)return{code:'fraco',label:'Fraco',cls:'warn',notes,why:'Recebe cliques mas não converte em venda.'};
+  if(m.ctr!=null&&m.ctr<cfg.adsCtrFraco)return{code:'fraco',label:'Fraco',cls:'warn',notes,why:'Aparece bastante mas quase ninguém clica.'};
+  return{code:'pouco',label:'Pouca exposição',cls:'',notes,why:'Poucos dados ainda para julgar.'};
+}
+function fullVerdict(s,cfg){
+  const rules=[];
+  rules.push({nome:'Vendas no histórico',ok:s.n>=cfg.fullMinVendas,m:`${s.n} (mín. ${cfg.fullMinVendas})`,req:true});
+  rules.push({nome:'Unidades nos últimos 30 dias',ok:s.un30>=cfg.fullMinUnidades30,m:`${s.un30} (mín. ${cfg.fullMinUnidades30})`,req:true});
+  rules.push({nome:'Margem líquida',ok:s.custoEstimado?null:s.margem>=cfg.fullMinMargem,m:s.custoEstimado?'custo não cadastrado':`${s.margem.toFixed(1)}% (mín. ${cfg.fullMinMargem}%)`,req:true});
+  rules.push({nome:'Cancelamentos e devoluções',ok:s.cancelPct<=cfg.fullMaxCancel,m:`${s.cancelPct.toFixed(1)}% (máx. ${cfg.fullMaxCancel}%)`,req:true});
+  const trend=s.un30prev?s.un30/s.un30prev:null;
+  rules.push({nome:'Tendência (30 dias vs 30 anteriores)',ok:trend==null?null:trend>=0.7,m:trend==null?`${s.un30} vs ${s.un30prev}`:`${s.un30} vs ${s.un30prev} (${trend>=1?'+':''}${((trend-1)*100).toFixed(0)}%)`,req:false});
+  rules.push({nome:'Preço médio x frete grátis',ok:s.precoMed>=cfg.fullPrecoFreteGratis?true:null,m:`R$ ${s.precoMed.toFixed(2)} (frete grátis a partir de R$ ${cfg.fullPrecoFreteGratis})`,req:false});
+  if(s.nTotal<3)return{code:'sem',label:'Sem dados',cls:'',rules,why:'Menos de 3 vendas no histórico.'};
+  const req=rules.filter(r=>r.req);const fails=req.filter(r=>r.ok===false).length,unk=req.filter(r=>r.ok===null).length;
+  const giro=rules[1].ok;
+  if(fails===0&&unk===0)return{code:'ok',label:'Compensa Full',cls:'good',rules,why:'Gira rápido, tem margem e poucos problemas: estoque no Full tende a vender mais e entregar mais rápido.'};
+  if(giro&&fails+unk<=1)return{code:'avaliar',label:'Avaliar',cls:'warn',rules,why:unk?'Gira bem, mas falta cadastrar o custo para confirmar a margem.':'Gira bem, mas um critério não bate. Veja a regra em vermelho.'};
+  return{code:'nao',label:'Não compensa',cls:'bad',rules,why:giro===false?'Vende pouco: estoque parado no Full gera custo de armazenagem.':'Mais de um critério não bate.'};
+}
+/*COMPUTE-END*/
+
+// ---------- formatação ----------
+const fmtBRL=n=>n==null||isNaN(n)?'—':(n<0?'−':'')+'R$ '+Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=n=>n==null||isNaN(n)?'—':(+n).toLocaleString('pt-BR');
+const fmtP=(n,d=1)=>n==null||isNaN(n)?'—':(+n).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';
+const fmtD=d=>!d?'—':d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);
+const fmtDT=d=>!d?'—':fmtD(d)+(d.length>10?' '+d.slice(11,16):'');
+const fmtYM=ym=>!ym?'—':MES_NOME[+ym.slice(5,7)]+'/'+ym.slice(0,4);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cls=n=>n>0?'pos':n<0?'neg':'';
+function badge(v){if(!v)return '<span class="badge">—</span>';const ic={good:'✓',warn:'!',bad:'✕','':'○'}[v.cls]||'○';return `<span class="badge ${v.cls}">${ic} ${esc(v.label)}</span>`;}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',2600);}
+function uid(p){return (p||'x')+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+// ---------- armazenamento ----------
+const COLLS=['config','custos','produtos','imports','vendas','ads'];
+const state={config:{},mapeamento:{},fechamentos:{},custos:{},produtos:{},imports:{},vendas:{},ads:{}};
+const Store={mode:'local',db:null,canWrite:true,ready:false,
+  async init(){
+    let db=null;
+    try{if(window.claude&&window.claude.use)db=await window.claude.use('db');}catch(e){db=null;}
+    if(db){this.db=db;this.mode='db';
+      try{const u=await window.claude.use('user');if(u){const w=await u.can('data.write');if(w===false)this.canWrite=false;}}catch(e){}
+      this.subscribe();
+    }else{this.mode='local';this.loadLocal();this.ready=true;}
+    setSync();
+  },
+  loadLocal(){try{const s=JSON.parse(localStorage.getItem('lb_ml_v1')||'null');if(s){Object.assign(state,s);state._chunks=state._chunks||{vendas:{},ads:{}};['vendas','ads'].forEach(coll=>{const m={};Object.values(state._chunks[coll]||{}).forEach(x=>(x.rows||[]).forEach(r=>{m[coll==='vendas'?r.id:r.key]=r;}));state[coll]=m;});}}catch(e){}},
+  saveLocal(){try{const s=Object.assign({},state,{vendas:undefined,ads:undefined});localStorage.setItem('lb_ml_v1',JSON.stringify(s));}catch(e){toast('Não consegui salvar no navegador (espaço cheio?)');}},
+  subscribe(){
+    const db=this.db;let got=0;const need=COLLS.length;
+    const timer=setTimeout(()=>{if(!this.ready){this.ready=true;toast('Os dados compartilhados demoram a chegar. Mostrando o que já veio.');render();}},10000);
+    COLLS.forEach(coll=>{
+      db.collection(coll).onSnapshot(snap=>{
+        if(coll==='config'){state.config={};state.mapeamento={};state.fechamentos={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();if(d.id==='geral')state.config=x;else if(d.id==='mapeamento')state.mapeamento=x;else if(d.id==='fechamentos')state.fechamentos=x;});}
+        else if(coll==='vendas'||coll==='ads'){const m={};snap.docs.forEach(d=>{if(!d.exists)return;const x=d.data();(x.rows||[]).forEach(r=>{m[coll==='vendas'?r.id:r.key]=r;});});state[coll]=m;}
+        else{const m={};snap.docs.forEach(d=>{if(d.exists)m[d.id]=Object.assign({id:d.id},d.data());});state[coll]=m;}
+        if(!snap.metadata.fromCache&&got<need){got++;if(got>=need){this.ready=true;clearTimeout(timer);}}
+        scheduleRender();
+      },err=>{console.error(coll,err);if(err&&err.code==='revoked'){this.canWrite=false;setSync();}});
+    });
+  },
+  async put(coll,id,data){
+    if(this.mode==='db'){try{await this.db.collection(coll).doc(id).set(data);}catch(e){console.error(e);if(e&&e.code==='invalid_argument'){this.canWrite=false;setSync();toast('Você não tem permissão para editar este painel.');}else toast('Erro ao salvar: '+(e.message||e.code||e));throw e;}}
+    else{this.applyLocal(coll,id,data);this.saveLocal();scheduleRender();}
+  },
+  async del(coll,id){
+    if(this.mode==='db'){try{await this.db.collection(coll).doc(id).delete();}catch(e){console.error(e);toast('Erro ao excluir: '+(e.message||e.code||e));throw e;}}
+    else{this.applyLocal(coll,id,null);this.saveLocal();scheduleRender();}
+  },
+  applyLocal(coll,id,data){
+    if(coll==='config'){const k=id==='geral'?'config':id;state[k]=data||{};}
+    else if(coll==='vendas'||coll==='ads'){state._chunks=state._chunks||{vendas:{},ads:{}};if(data)state._chunks[coll][id]=data;else delete state._chunks[coll][id];const m={};Object.values(state._chunks[coll]).forEach(x=>(x.rows||[]).forEach(r=>{m[coll==='vendas'?r.id:r.key]=r;}));state[coll]=m;}
+    else{if(data)state[coll][id]=Object.assign({id},data);else delete state[coll][id];}
+  },
+  async writeRows(coll,rowsMap){ // reescreve todos os chunks
+    const rows=Object.values(rowsMap);const size=coll==='vendas'?350:400;const chunks=[];
+    for(let i=0;i<rows.length;i+=size)chunks.push(rows.slice(i,i+size));
+    const existing=this.mode==='db'?await this.listChunkIds(coll):Object.keys((state._chunks||{})[coll]||{});
+    for(let i=0;i<chunks.length;i++){await this.put(coll,'c'+pad(i).padStart(3,'0'),{idx:i,rows:chunks[i]});}
+    for(const id of existing){const idx=+id.slice(1);if(idx>=chunks.length)await this.del(coll,id);}
+    if(this.mode==='db')state[coll]=rowsMap;
+  },
+  async listChunkIds(coll){const snap=await this.db.collection(coll).get();return snap.docs.filter(d=>d.exists).map(d=>d.id);},
+};
+function setSync(){const el=document.getElementById('sync');
+  if(Store.mode==='db'){el.className='status ok';el.querySelector('span').textContent=Store.canWrite?'Dados compartilhados':'Somente leitura';}
+  else{el.className='status local';el.querySelector('span').textContent='Modo local (só neste navegador)';}}
+
+// ---------- UI ----------
+const ui={view:'visao',open:{},vf:{de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100},af:{camp:'',ver:'',q:''},sf:{q:'',ord:'rp'},editCusto:null,pending:[],ff:{q:''}};
+const VIEWS=['visao','importar','vendas','anuncios','ads','gastos','fechamentos','full','regras'];
+let A=null,renderT=null;
+function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(render,30);}
+function routeFromHash(){const h=(location.hash||'').replace('#','');ui.view=VIEWS.includes(h)?h:'visao';}
+window.addEventListener('hashchange',()=>{routeFromHash();render();window.scrollTo(0,0);});
+
+function render(){
+  A=analyze(state);
+  document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.v===ui.view));
+  const nAlert=countAlerts();const tabG=document.querySelector('#tabs a[data-v=gastos]');tabG.innerHTML='Gastos'+(nAlert.dup?` <span class="badge warn">${nAlert.dup}</span>`:'');
+  const app=document.getElementById('app');
+  const fn={visao:vVisao,importar:vImportar,vendas:vVendas,anuncios:vAnuncios,ads:vAds,gastos:vGastos,fechamentos:vFech,full:vFull,regras:vRegras}[ui.view];
+  app.innerHTML=`<section data-view="${ui.view}">${fn()}</section>`;
+  bindCommon();
+}
+function countAlerts(){return{dup:A.custos.filter(c=>c.flags&&c.flags.length).length};}
+function hasData(){return A.rows.length>0;}
+function emptyHint(){return `<div class="empty">Nenhuma venda importada ainda. Vá em <a href="#importar">Importar</a> e solte aqui o relatório de vendas do Mercado Livre (xlsx) e o relatório de anúncios patrocinados (Ads).</div>`;}
+
+// ----- Visão geral -----
+function vVisao(){
+  const T=A.T,cfg=A.cfg;
+  if(!hasData())return `<h2>Visão geral</h2>${emptyHint()}${howCard()}`;
+  const alerts=[];
+  const dup=A.custos.filter(c=>c.flags.length);if(dup.length)alerts.push(`<div class="alert bad"><b>${dup.length} gasto(s) com suspeita de repetição.</b> Confira em <a href="#gastos">Gastos</a> antes de fechar as contas.</div>`);
+  if(A.semCusto.length)alerts.push(`<div class="alert"><b>${A.semCusto.length} anúncio(s) sem custo do produto cadastrado.</b> Sem o custo, o lucro e o limite de ACOS ficam estimados. Cadastre em <a href="#anuncios">Anúncios</a>.</div>`);
+  const adsNao=A.skuList.filter(s=>s.adsVer&&s.adsVer.code==='nao');if(adsNao.length)alerts.push(`<div class="alert bad"><b>${adsNao.length} anúncio(s) em que o Ads não compensa:</b> ${adsNao.slice(0,6).map(s=>esc(s.sku)).join(', ')}${adsNao.length>6?'…':''}. Veja <a href="#ads">Ads</a>.</div>`);
+  const fullOk=A.skuList.filter(s=>s.fullVer.code==='ok'&&!s.fullNow);if(fullOk.length)alerts.push(`<div class="alert good"><b>${fullOk.length} anúncio(s) com perfil para enviar ao Full:</b> ${fullOk.slice(0,6).map(s=>esc(s.sku)).join(', ')}${fullOk.length>6?'…':''}. Veja <a href="#full">Full</a>.</div>`);
+  const semSku=A.adsRows.filter(a=>!a.sku).length;if(semSku)alerts.push(`<div class="alert info"><b>${semSku} linha(s) do relatório de Ads sem SKU identificado.</b> Vincule em <a href="#ads">Ads</a> para o custo de Ads entrar no cálculo por anúncio.</div>`);
+  if(!A.custos.length)alerts.push(`<div class="alert info">Nenhum gasto registrado. Registre Ads, seguidores e outros custos em <a href="#gastos">Gastos</a> para o lucro ficar real.</div>`);
+  return `
+  <div class="row between"><h2>Visão geral</h2><span class="muted small">Vendas de ${fmtD(A.minD)} a ${fmtD(A.maxD)} · ${fmtN(A.rows.length)} linhas importadas</span></div>
+  ${alerts.length?`<div class="alerts">${alerts.join('')}</div>`:''}
+  <div class="tiles">
+    <div class="tile"><div class="lbl">Vendas</div><div class="val">${fmtN(T.n)}</div><div class="sub">${fmtN(T.un)} unidades · ${fmtN(T.nCancel)} canceladas/devolvidas</div></div>
+    <div class="tile"><div class="lbl">Receita por produtos</div><div class="val">${fmtBRL(T.rp)}</div><div class="sub">preço cheio dos produtos</div></div>
+    <div class="tile"><div class="lbl">Total ML (repasse)</div><div class="val">${fmtBRL(T.tot)}</div><div class="sub">já descontadas tarifas e envios · ${fmtP(T.rp?T.tot/T.rp*100:0)} da receita</div></div>
+    <div class="tile"><div class="lbl">Custo dos produtos</div><div class="val">${fmtBRL(T.custoProd+T.emb)}</div><div class="sub">${A.semCusto.length?A.semCusto.length+' SKU(s) sem custo':'produto + embalagem'}</div></div>
+    <div class="tile"><div class="lbl">Gastos registrados</div><div class="val">${fmtBRL(T.gastos)}</div><div class="sub">${Object.keys(A.gastosPorTipo).map(t=>t+' '+fmtBRL(A.gastosPorTipo[t])).join(' · ')||'nenhum'}</div></div>
+    <div class="tile"><div class="lbl">Lucro estimado</div><div class="val ${cls(T.lucro)}">${fmtBRL(T.lucro)}</div><div class="sub">margem ${fmtP(T.margem)} sobre a receita</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Total ML por mês (data da venda)</h3>${chartMes()}</div>
+    <div class="card"><h3>Como o lucro foi calculado</h3>
+      <div class="calc">
+        <span class="k">Total ML (soma do que o ML repassa)</span><span class="v">${fmtBRL(T.tot)}</span>
+        <span class="k">− Custo dos produtos (custo unitário × unidades)</span><span class="v">${fmtBRL(-T.custoProd)}</span>
+        <span class="k">− Embalagem</span><span class="v">${fmtBRL(-T.emb)}</span>
+        <span class="k">− Gastos registrados (Ads, seguidores, fixos…)</span><span class="v">${fmtBRL(-T.gastos)}</span>
+        <span class="k sum2">= Lucro estimado</span><span class="v sum2 ${cls(T.lucro)}">${fmtBRL(T.lucro)}</span>
+        <span class="note">O Ads entra aqui pelo que você registrou em Gastos (o que realmente foi pago), e não pelo relatório de Ads, para não contar duas vezes. O relatório serve para avaliar anúncio por anúncio.</span>
+      </div>
+    </div>
+  </div>
+  <div class="card"><h3>Top anúncios por receita</h3>${tabelaSkus(A.skuList.slice().sort((a,b)=>b.rp-a.rp).slice(0,10),true)}</div>`;
+}
+function chartMes(){
+  const ms=Object.values(A.vendMes).sort((a,b)=>a.ym<b.ym?-1:1);if(!ms.length)return '';
+  const W=560,H=220,pl=56,pr=12,pt=14,pb=34;const max=Math.max(...ms.map(m=>m.tot))*1.1||1;
+  const iw=(W-pl-pr)/ms.length;const bw=Math.min(48,iw*0.6);
+  const ticks=4;let g='';for(let i=0;i<=ticks;i++){const v=max*i/ticks;const y=pt+(H-pt-pb)*(1-v/max);g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${v>=1000?(v/1000).toFixed(0)+'k':v.toFixed(0)}</text>`;}
+  const bars=ms.map((m,i)=>{const h=(H-pt-pb)*m.tot/max;const x=pl+i*iw+(iw-bw)/2;const y=H-pb-h;return `<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" data-tip="${esc(fmtYM(m.ym))}: ${esc(fmtBRL(m.tot))} em ${m.n} vendas"/><text x="${x+bw/2}" y="${H-pb+16}" text-anchor="middle">${fmtYM(m.ym)}</text>`;}).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Total ML por mês">${g}<line class="grid" x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}"/>${bars}</svg>`;
+}
+
+// ----- Importar -----
+function vImportar(){
+  const imps=Object.values(state.imports).sort((a,b)=>(b.em||'')<(a.em||'')?-1:1);
+  return `<h2>Importar relatórios</h2>
+  <div class="card">
+    <div class="drop" id="drop"><input type="file" id="file" multiple accept=".xlsx,.xls,.csv">
+      <div style="font-family:var(--display);font-weight:600;font-size:1.05rem">Solte aqui os arquivos ou clique para escolher</div>
+      <div class="muted small" style="margin-top:6px">Aceita o relatório de <b>Vendas</b> do Mercado Livre (xlsx) e o relatório de <b>Anúncios patrocinados</b> (Ads). O tipo é detectado pelo cabeçalho. Pode soltar os dois de uma vez.</div>
+    </div>
+    <div id="pending">${renderPending()}</div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Como baixar no Mercado Livre</h3>
+      <div class="how">
+        <p><b>Vendas:</b> Vendas → Vendas → botão <i>Baixar relatório</i> (planilha). Escolha o período e exporte em Excel. Pode importar de novo o mesmo período: vendas repetidas são atualizadas, não duplicadas (pelo nº da venda).</p>
+        <p><b>Ads (anúncios patrocinados):</b> Publicidade → Product Ads → Relatórios → <i>Relatório de anúncios</i> no período desejado. Ao importar, o painel oferece registrar o investimento total como gasto de Ads e avisa se já existe um gasto parecido no período.</p>
+      </div>
+    </div>
+    <div class="card"><h3>Importações feitas</h3>
+      ${imps.length?`<div class="tbl-wrap"><table><thead><tr><th>Quando</th><th>Arquivo</th><th>Tipo</th><th class="r">Linhas</th><th>Período</th><th></th></tr></thead><tbody>
+      ${imps.map(i=>`<tr><td>${fmtDT(i.em)}</td><td>${esc(i.nome)}</td><td>${i.tipo==='ads'?'Ads':'Vendas'}</td><td class="r">${fmtN(i.n)}</td><td>${fmtD(i.de)} a ${fmtD(i.ate)}</td><td><button class="btn sm danger" data-act="rm-import" data-id="${i.id}">Remover</button></td></tr>`).join('')}
+      </tbody></table></div>`:'<p class="muted">Nenhuma importação ainda.</p>'}
+    </div>
+  </div>
+  <div class="card"><h3>Backup</h3>
+    <div class="row"><button class="btn" data-act="backup">Baixar backup (JSON)</button>
+    <label class="btn" style="cursor:pointer">Restaurar backup <input type="file" id="restore" accept=".json" style="display:none"></label>
+    <button class="btn danger" data-act="wipe">Apagar todos os dados</button> <span id="wipe-confirm"></span></div>
+    <p class="muted small" style="margin-top:8px">O backup leva vendas, Ads, gastos, custos cadastrados e regras. Restaurar substitui tudo.</p>
+  </div>`;
+}
+function renderPending(){
+  if(!ui.pending.length)return '';
+  return ui.pending.map((p,i)=>{
+    if(p.erro)return `<div class="alert bad" style="margin-top:12px"><b>${esc(p.nome)}</b>: ${esc(p.erro)}</div>`;
+    const parts=p.parts.map((pt,j)=>{
+      if(pt.tipo==='vendas'){const novas=pt.rows.filter(r=>!state.vendas[r.id]).length;const ds=pt.rows.map(r=>r.d||(r.dt||'').slice(0,10)).filter(Boolean).sort();
+        return `<div class="kv"><b>Tipo</b><span>Vendas (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} · ${novas} novas · ${pt.rows.length-novas} já existem (serão atualizadas)</span><b>Período</b><span>${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])}</span></div>`;}
+      const inv=pt.rows.reduce((a,r)=>a+r.inv,0);const de=pt.rows.map(r=>r.de).filter(Boolean).sort()[0],ate=pt.rows.map(r=>r.ate).filter(Boolean).sort().pop();
+      const dupAds=A.custos.filter(c=>c.tipo==='Ads'&&c.ini&&c.fim&&de&&ate&&overlapDays(c.ini,c.fim,de,ate)>0);
+      return `<div class="kv"><b>Tipo</b><span>Ads (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} anúncios/campanhas</span><b>Período</b><span>${fmtD(de)} a ${fmtD(ate)}</span><b>Investimento</b><span>${fmtBRL(inv)}</span></div>
+        <label class="row small" style="margin-top:8px;font-weight:600"><input type="checkbox" id="regads-${i}-${j}" ${dupAds.length?'':'checked'}> Registrar ${fmtBRL(inv)} como gasto de Ads (${fmtD(de)} a ${fmtD(ate)})</label>
+        ${dupAds.length?`<div class="alert" style="margin-top:6px"><b>Atenção: já existe gasto de Ads nesse período</b> (${dupAds.map(c=>esc(c.desc||'Ads')+' '+fmtBRL(+c.valor)+' · '+fmtD(c.ini)+' a '+fmtD(c.fim)).join('; ')}). Marque a caixa só se for um gasto diferente.</div>`:''}`;
+    }).join('<hr style="border:0;border-top:1px solid var(--line);margin:10px 0">');
+    return `<div class="card flat" style="margin-top:12px;background:var(--surface2)"><div class="row between"><h3>${esc(p.nome)}</h3><div class="row"><button class="btn primary" data-act="commit" data-i="${i}" ${Store.canWrite?'':'disabled'}>Adicionar ao painel</button><button class="btn" data-act="discard" data-i="${i}">Descartar</button></div></div>${parts||'<p class="muted">Não reconheci nenhuma aba de vendas ou Ads neste arquivo.</p>'}</div>`;
+  }).join('');
+}
+async function handleFiles(files){
+  for(const f of files){
+    try{
+      if(/\.json$/i.test(f.name)){continue;}
+      const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});
+      const impId=uid('i');const parts=parseWorkbook(wb,impId);
+      ui.pending.push({nome:f.name,impId,parts,erro:parts.length?null:'Não encontrei colunas de Vendas (N.º de venda, Total…) nem de Ads (Impressões, Investimento…) neste arquivo.'});
+    }catch(e){console.error(e);ui.pending.push({nome:f.name,erro:'Não consegui ler o arquivo: '+(e.message||e)});}
+  }
+  render();
+}
+async function commitPending(i){
+  const p=ui.pending[i];if(!p||p.erro)return;
+  const btns=document.querySelectorAll('[data-act=commit]');btns.forEach(b=>{b.disabled=true;b.textContent='Salvando…';});
+  try{
+    for(let j=0;j<p.parts.length;j++){const pt=p.parts[j];
+      if(pt.tipo==='vendas'){
+        const m=Object.assign({},state.vendas);pt.rows.forEach(r=>{const old=m[r.id];m[r.id]=old?Object.assign({},old,r,{imp:old.imp||r.imp}):r;});
+        await Store.writeRows('vendas',m);
+        const ds=pt.rows.map(r=>(r.dt||'').slice(0,10)).filter(Boolean).sort();
+        await Store.put('imports',p.impId+'v'+j,{nome:p.nome,tipo:'vendas',n:pt.rows.length,de:ds[0]||null,ate:ds[ds.length-1]||null,em:new Date().toISOString().slice(0,16)});
+      }else{
+        const m=Object.assign({},state.ads);pt.rows.forEach(r=>{m[r.key]=r;});
+        await Store.writeRows('ads',m);
+        const de=pt.rows.map(r=>r.de).filter(Boolean).sort()[0]||null,ate=pt.rows.map(r=>r.ate).filter(Boolean).sort().pop()||null;
+        await Store.put('imports',p.impId+'a'+j,{nome:p.nome,tipo:'ads',n:pt.rows.length,de,ate,em:new Date().toISOString().slice(0,16)});
+        const cb=document.getElementById(`regads-${i}-${j}`);
+        if(cb&&cb.checked){const inv=pt.rows.reduce((a,r)=>a+r.inv,0);const id=uid('c');await Store.put('custos',id,{tipo:'Ads',desc:'Ads – relatório '+p.nome.replace(/\.(xlsx|xls|csv)$/i,''),valor:+inv.toFixed(2),ini:de,fim:ate,obs:'Registrado automaticamente na importação',imp:p.impId});}
+      }
+    }
+    ui.pending.splice(i,1);toast('Importado com sucesso');
+  }catch(e){console.error(e);}
+  render();
+}
+async function removeImport(id){
+  const imp=state.imports[id];if(!imp)return;const base=id.replace(/[va]\d+$/,'');
+  if(imp.tipo==='vendas'){const m={};Object.values(state.vendas).forEach(r=>{if(r.imp!==base)m[r.id]=r;});await Store.writeRows('vendas',m);}
+  else{const m={};Object.values(state.ads).forEach(r=>{if(r.imp_id!==base)m[r.key]=r;});await Store.writeRows('ads',m);}
+  await Store.del('imports',id);toast('Importação removida');render();
+}
+
+// ----- Vendas -----
+function vVendas(){
+  if(!hasData())return `<h2>Vendas</h2>${emptyHint()}`;
+  const f=ui.vf;const skus=A.skuList.map(s=>s.sku).sort((a,b)=>a.localeCompare(b));
+  let list=A.rows.filter(r=>{
+    if(r.pk==='C')return false; // filhos aparecem sob o pai
+    const rr=r.pk==='P'?r.kids||[]:[r];
+    if(f.de&&r.d<f.de)return false;if(f.ate&&r.d>f.ate)return false;
+    if(f.sku&&!rr.some(k=>k.sku===f.sku))return false;
+    if(f.st==='ok'&&r.cancel)return false;if(f.st==='cancel'&&!r.cancel)return false;
+    if(f.pub==='sim'&&!rr.some(k=>k.pub))return false;if(f.pub==='nao'&&rr.some(k=>k.pub))return false;
+    if(f.q){const q=norm(f.q);if(!rr.some(k=>norm(k.sku).includes(q)||norm(k.tit).includes(q)||k.id.includes(q))&&!r.id.includes(q))return false;}
+    return true;});
+  const sum={n:0,rp:0,tot:0,lucro:0,un:0};list.forEach(r=>{if(!r.cancel){sum.n++;sum.un+=r.un;}sum.rp+=r.rp||0;sum.tot+=r.tot||0;sum.lucro+=r.lucro||0;});
+  const shown=list.slice(0,f.lim);
+  const row=r=>{const open=ui.open['v'+r.id];const isP=r.pk==='P';
+    const main=`<tr class="click ${open?'open':''} ${isP?'pk':''}" data-act="toggle" data-k="v${r.id}">
+      <td class="num">${fmtDT(r.dt)}</td><td class="mono small">${esc(r.id)}</td>
+      <td>${isP?`<span class="sku">Pacote com ${r.n} produtos</span><span class="t small muted">${(r.kids||[]).map(k=>esc(k.sku)).join(' + ')}</span>`:`<span class="sku">${esc(r.sku)||'<i>sem SKU</i>'}</span><span class="t small muted" title="${esc(r.tit)}">${esc(r.tit)}</span>`}</td>
+      <td class="r">${r.un||''}</td><td class="r">${fmtBRL(r.rp)}</td><td class="r">${fmtBRL((r.tv||0)+(r.tp||0)+(r.te||0)+(r.re||0)+(r.db||0)+(r.ra||0)+(r.ca||0))}</td><td class="r">${fmtBRL(r.tot)}</td>
+      <td class="r">${fmtBRL(-(r.custoProd+r.emb+r.ads+r.fixo))}</td><td class="r ${cls(r.lucro)}">${fmtBRL(r.lucro)}</td>
+      <td>${r.pub||(r.kids||[]).some(k=>k.pub)?'<span class="badge ml">Ads</span>':''}</td><td class="small">${r.cancel?'<span class="badge bad">✕ '+esc(r.st)+'</span>':esc(r.st)}</td></tr>`;
+    if(!open)return main;
+    const det=isP?(r.kids||[]).map(k=>`<h4 style="margin:10px 0 6px">${esc(k.sku)} · ${esc(k.tit)} · ${k.un} un · ${fmtP(k.share*100,0)} do pacote</h4>${calcVenda(k)}`).join(''):calcVenda(r);
+    return main+`<tr class="detail"><td colspan="11"><div class="dwrap">${isP?`<p class="small muted">Pacote: o ML informa o dinheiro só na linha do pacote. O painel divide entre os produtos pelo preço médio de cada SKU × unidades.</p>`:''}${det}</div></td></tr>`;};
+  return `<div class="row between"><h2>Vendas</h2><span class="muted small">Clique numa venda para ver o cálculo passo a passo</span></div>
+  <div class="card"><div class="filters">
+    <label>De<input type="date" id="vf-de" value="${f.de}"></label><label>Até<input type="date" id="vf-ate" value="${f.ate}"></label>
+    <label>SKU<select id="vf-sku"><option value="">Todos</option>${skus.map(s=>`<option ${f.sku===s?'selected':''} value="${esc(s)}">${esc(s)||'(sem SKU)'}</option>`).join('')}</select></label>
+    <label>Situação<select id="vf-st"><option value="">Todas</option><option value="ok" ${f.st==='ok'?'selected':''}>Válidas</option><option value="cancel" ${f.st==='cancel'?'selected':''}>Canceladas/devolvidas</option></select></label>
+    <label>Publicidade<select id="vf-pub"><option value="">Todas</option><option value="sim" ${f.pub==='sim'?'selected':''}>Veio do Ads</option><option value="nao" ${f.pub==='nao'?'selected':''}>Orgânica</option></select></label>
+    <label>Buscar<input type="search" id="vf-q" value="${esc(f.q)}" placeholder="SKU, título ou nº"></label>
+    <button class="btn sm" data-act="vf-clear">Limpar</button>
+  </div>
+  <div class="tiles" style="margin-top:12px">
+    <div class="tile"><div class="lbl">Vendas no filtro</div><div class="val">${fmtN(sum.n)}</div><div class="sub">${fmtN(sum.un)} unidades</div></div>
+    <div class="tile"><div class="lbl">Receita produtos</div><div class="val">${fmtBRL(sum.rp)}</div></div>
+    <div class="tile"><div class="lbl">Total ML</div><div class="val">${fmtBRL(sum.tot)}</div></div>
+    <div class="tile"><div class="lbl">Lucro (após custos)</div><div class="val ${cls(sum.lucro)}">${fmtBRL(sum.lucro)}</div><div class="sub">${fmtP(sum.rp?sum.lucro/sum.rp*100:0)} da receita</div></div>
+  </div></div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Nº venda</th><th>SKU / anúncio</th><th class="r">Un</th><th class="r">Receita</th><th class="r">Tarifas e envio</th><th class="r">Total ML</th><th class="r">Custos</th><th class="r">Lucro</th><th></th><th>Estado</th></tr></thead>
+  <tbody>${shown.map(row).join('')}</tbody></table></div>
+  ${list.length>shown.length?`<div class="row" style="margin-top:10px;justify-content:center"><button class="btn" data-act="vf-more">Mostrar mais (${fmtN(list.length-shown.length)} restantes)</button></div>`:''}
+  </div>`;
+}
+function calcVenda(r){
+  const e=r.eff;const p=r.rateado?' (rateado)':'';
+  const L=[['Receita por produtos',e.rp],['Acréscimo no preço (pago pelo comprador)',e.ra],['Taxa de parcelamento',e.tp],['Tarifa de venda e impostos',e.tv],['Receita por envio',e.re],['Tarifas de envio',e.te],['Descontos e bônus',e.db],['Cancelamentos e reembolsos',e.ca]];
+  const s=A.skus[r.sku]||{};
+  return `<div class="calc">
+    ${L.map(([k,v])=>`<span class="k">${k}${p}</span><span class="v">${fmtBRL(v)}</span>`).join('')}
+    <span class="k sum">= Total ML (o que o ML repassa)</span><span class="v sum">${fmtBRL(e.tot)}</span>
+    <span class="k">− Custo do produto ${r.custoUnit!=null?`(${r.un} × ${fmtBRL(r.custoUnit)})`:(A.cfg.custoPadraoPct?`(estimado ${A.cfg.custoPadraoPct}% da receita)`:'<i>(custo não cadastrado)</i>')}</span><span class="v">${fmtBRL(-r.custoProd)}</span>
+    <span class="k">− Embalagem</span><span class="v">${fmtBRL(-r.emb)}</span>
+    <span class="k">− Ads atribuído ${r.pub?(A.adsPerSale[r.sku]?`(investimento do anúncio ÷ ${A.pubCountBy[r.sku]} vendas por publicidade)`:'<i>(venda por publicidade, mas sem Ads vinculado a este SKU)</i>'):'(venda orgânica)'}</span><span class="v">${fmtBRL(-r.ads)}</span>
+    <span class="k">− Rateio de gastos fixos do período</span><span class="v">${fmtBRL(-r.fixo)}</span>
+    <span class="k sum2">= Lucro líquido</span><span class="v sum2 ${cls(r.lucro)}">${fmtBRL(r.lucro)}</span>
+    <span class="note">Margem líquida ${fmtP(e.rp?r.lucro/e.rp*100:0)} · Tarifas e envio levaram ${fmtP(e.rp?-(e.tv+e.tp+e.te+e.re+e.db+e.ra)/e.rp*100:0)} da receita${r.cancel?' · venda cancelada/devolvida: unidades não contam no giro':''}</span>
+    ${s.custoEstimado&&r.sku?`<span class="note">Cadastre o custo de <b>${esc(r.sku)}</b> em Anúncios para o lucro ficar exato.</span>`:''}
+  </div>`;
+}
+
+// ----- Anúncios (por SKU) -----
+function tabelaSkus(list,compact){
+  return `<div class="tbl-wrap"><table><thead><tr><th>SKU</th><th class="r">Vendas</th><th class="r">Un</th><th class="r">Receita</th><th class="r">Total ML</th><th class="r">Lucro</th><th class="r">Margem</th>${compact?'':'<th class="r">Un/30d</th><th class="r">Via Ads</th><th class="r">Cancel.</th>'}<th>Ads</th><th>Full</th></tr></thead><tbody>
+  ${list.map(s=>{const open=!compact&&ui.open['s'+s.pid];return `<tr class="click ${open?'open':''}" data-act="${compact?'goto-sku':'toggle'}" data-k="s${s.pid}" data-sku="${esc(s.sku)}">
+    <td><span class="sku">${esc(s.sku)||'<i>sem SKU</i>'}</span><span class="t small muted" title="${esc(s.tit)}">${esc(s.tit)}</span></td>
+    <td class="r">${fmtN(s.n)}</td><td class="r">${fmtN(s.un)}</td><td class="r">${fmtBRL(s.rp)}</td><td class="r">${fmtBRL(s.tot)}</td><td class="r ${cls(s.lucro)}">${fmtBRL(s.lucro)}${s.custoEstimado?'<span class="muted" title="custo não cadastrado">*</span>':''}</td><td class="r">${fmtP(s.margem)}</td>
+    ${compact?'':`<td class="r">${s.un30}<div class="meter"><i style="width:${Math.min(100,s.un30/Math.max(1,A.cfg.fullMinUnidades30)*100)}%"></i></div></td><td class="r">${fmtP(s.pubPct,0)}</td><td class="r">${fmtP(s.cancelPct)}</td>`}
+    <td>${s.adsVer?badge(s.adsVer):'<span class="badge">sem Ads</span>'}</td><td>${badge(s.fullVer)}</td></tr>${open?`<tr class="detail"><td colspan="12"><div class="dwrap">${skuDetail(s)}</div></td></tr>`:''}`;}).join('')}
+  </tbody></table></div>`;
+}
+function vAnuncios(){
+  if(!hasData())return `<h2>Anúncios</h2>${emptyHint()}`;
+  const f=ui.sf;let list=A.skuList.filter(s=>!f.q||norm(s.sku).includes(norm(f.q))||norm(s.tit).includes(norm(f.q)));
+  const ord={rp:(a,b)=>b.rp-a.rp,lucro:(a,b)=>b.lucro-a.lucro,margem:(a,b)=>b.margem-a.margem,un30:(a,b)=>b.un30-a.un30,sku:(a,b)=>a.sku.localeCompare(b.sku),prob:(a,b)=>(score(b)-score(a))};
+  function score(s){return (s.adsVer&&s.adsVer.code==='nao'?3:0)+(s.fullVer.code==='ok'?2:0)+(s.custoEstimado?1:0);}
+  list.sort(ord[f.ord]||ord.rp);
+  return `<div class="row between"><h2>Anúncios (por SKU)</h2><span class="muted small">${A.skuList.length} SKUs · clique para ver detalhes e cadastrar o custo</span></div>
+  <div class="card"><div class="filters"><label>Buscar<input type="search" id="sf-q" value="${esc(f.q)}" placeholder="SKU ou título"></label>
+  <label>Ordenar por<select id="sf-ord">${[['rp','Receita'],['lucro','Lucro'],['margem','Margem'],['un30','Giro (un/30d)'],['prob','Precisa de atenção'],['sku','SKU']].map(([k,l])=>`<option value="${k}" ${f.ord===k?'selected':''}>${l}</option>`).join('')}</select></label>
+  <span class="muted small">* custo não cadastrado (lucro estimado)</span></div></div>
+  <div class="card">${tabelaSkus(list,false)}</div>`;
+}
+function skuDetail(s){
+  const p=s.prod||{};const m=s.adsM;
+  const custoCard=`<div class="card flat"><h4>Custos deste produto</h4>
+    <div class="inline-edit">
+      <label>Custo unitário (R$)<input type="number" step="0.01" min="0" id="pc-custo-${s.pid}" value="${p.custo!=null?p.custo:''}" placeholder="ex.: 8,50"></label>
+      <label>Embalagem por venda (R$)<input type="number" step="0.01" min="0" id="pc-emb-${s.pid}" value="${p.emb!=null?p.emb:''}" placeholder="padrão ${A.cfg.embalagemPadrao}"></label>
+      <label>Códigos MLB (vírgula)<input type="text" id="pc-mlbs-${s.pid}" value="${esc((p.mlbs||[]).join(', '))}" placeholder="MLB123…"></label>
+      <label>Observação<input type="text" id="pc-obs-${s.pid}" value="${esc(p.obs||'')}"></label>
+      <button class="btn primary" data-act="save-prod" data-pid="${s.pid}" data-sku="${esc(s.sku)}" ${Store.canWrite?'':'disabled'}>Salvar</button>
+    </div></div>`;
+  const resumo=`<div class="card flat"><h4>Resultado no período</h4><div class="calc">
+    <span class="k">Receita por produtos (${s.n} vendas, ${s.un} un)</span><span class="v">${fmtBRL(s.rp)}</span>
+    <span class="k">Tarifas, envio, bônus e reembolsos</span><span class="v">${fmtBRL(s.tot-s.rp)}</span>
+    <span class="k sum">= Total ML</span><span class="v sum">${fmtBRL(s.tot)}</span>
+    <span class="k">− Custo dos produtos${s.custoEstimado?' (não cadastrado)':''}</span><span class="v">${fmtBRL(-s.custoProd)}</span>
+    <span class="k">− Embalagem</span><span class="v">${fmtBRL(-s.emb)}</span>
+    <span class="k">− Ads atribuído (${s.nPub} vendas por publicidade)</span><span class="v">${fmtBRL(-s.ads)}</span>
+    <span class="k">− Rateio de gastos fixos</span><span class="v">${fmtBRL(-s.fixo)}</span>
+    <span class="k sum2">= Lucro</span><span class="v sum2 ${cls(s.lucro)}">${fmtBRL(s.lucro)}</span>
+    <span class="note">Margem ${fmtP(s.margem)} · ticket médio ${fmtBRL(s.ticket)} · preço médio por unidade ${fmtBRL(s.precoMed)} · ${fmtP(s.pubPct,0)} das vendas vieram do Ads · ${s.nCancel} cancelada(s)/devolvida(s) (${fmtP(s.cancelPct)}) · primeira venda ${fmtD(s.first)}, última ${fmtD(s.last)}</span>
+    <span class="note">Limite de ACOS (margem disponível para pagar Ads) = (Total ML − custo − embalagem) ÷ receita = <b>${fmtP(s.limiteAcos)}</b>${s.limiteEstimado?' (valor padrão das regras, pois o custo não foi cadastrado)':''}</span>
+  </div></div>`;
+  const ads=s.adsRows.length?`<div class="card flat"><h4>Ads · ${badge(s.adsVer)}</h4><p class="small" style="margin:6px 0">${esc(s.adsVer.why)}</p>${s.adsVer.notes.map(n=>`<p class="small muted">• ${esc(n)}</p>`).join('')}
+    <div class="kv" style="margin-top:8px"><b>Impressões</b><span>${fmtN(m.imp)}</span><b>Cliques</b><span>${fmtN(m.clk)} (CTR ${fmtP(m.ctr,2)})</span><b>Vendas por publicidade</b><span>${fmtN(m.vp)} (CVR ${fmtP(m.cvr)})</span><b>Investimento</b><span>${fmtBRL(m.inv)}</span><b>Receita do Ads</b><span>${fmtBRL(m.rec)}</span><b>ACOS</b><span>${fmtP(m.acos)} (limite ${fmtP(s.limiteAcos)})</span><b>ROAS</b><span>${m.roas!=null?m.roas.toFixed(2)+'x':'—'}</span><b>Lucro estimado do Ads</b><span class="${cls(m.lucroAds)}">${fmtBRL(m.lucroAds)} = receita do Ads × ${fmtP(s.limiteAcos)} − investimento</span></div>
+    <p class="small muted" style="margin-top:6px">Campanhas: ${s.adsRows.map(a=>esc(a.camp)+' ('+esc(a.st)+')').join(', ')}</p></div>`
+    :`<div class="card flat"><h4>Ads</h4><p class="small muted">Nenhuma linha do relatório de Ads vinculada a este SKU. Se o anúncio está em campanha, vincule o código MLB acima ou na aba Ads.</p></div>`;
+  const fv=s.fullVer;
+  const full=`<div class="card flat"><h4>Full · ${badge(fv)}${s.fullNow?' <span class="badge info">já no Full</span>':''}</h4><p class="small" style="margin:6px 0">${esc(fv.why)}</p><div class="rules">${fv.rules.map(r=>`<div class="rule ${r.ok===true?'ok':r.ok===false?'no':'na'}"><span class="ic">${r.ok===true?'✓':r.ok===false?'✕':'?'}</span><span>${r.nome}${r.req?'':' <span class="muted small">(informativo)</span>'}</span><span class="m">${r.m}</span></div>`).join('')}</div></div>`;
+  return `<div class="grid g2">${resumo}${custoCard}${ads}${full}</div>`;
+}
+
+// ----- Ads -----
+function vAds(){
+  if(!A.adsRows.length)return `<h2>Ads (anúncios patrocinados)</h2><div class="empty">Nenhum relatório de Ads importado. Vá em <a href="#importar">Importar</a>.</div>`;
+  const f=ui.af;const T=A.adsT;
+  const camps=[...new Set(A.adsRows.map(a=>a.camp))].sort();
+  let list=A.adsRows.filter(a=>(!f.camp||a.camp===f.camp)&&(!f.ver||a.ver.code===f.ver||(f.ver==='semsku'&&!a.sku))&&(!f.q||norm(a.tit).includes(norm(f.q))||norm(a.mlb).includes(norm(f.q))||norm(a.sku||'').includes(norm(f.q))));
+  list.sort((a,b)=>b.inv-a.inv);
+  const cnt={};A.adsRows.forEach(a=>{cnt[a.ver.code]=(cnt[a.ver.code]||0)+1;});
+  const skuOpts=A.skuList.map(s=>s.sku).sort((a,b)=>a.localeCompare(b));
+  const regAds=A.custos.filter(c=>c.tipo==='Ads').reduce((a,c)=>a+(+c.valor||0),0);
+  return `<div class="row between"><h2>Ads (anúncios patrocinados)</h2><span class="muted small">Relatório de ${fmtD(A.adsDe)} a ${fmtD(A.adsAte)} · ${A.adsRows.length} linhas</span></div>
+  <div class="tiles">
+    <div class="tile"><div class="lbl">Investimento (relatório)</div><div class="val">${fmtBRL(T.inv)}</div><div class="sub">registrado em Gastos: ${fmtBRL(regAds)}${Math.abs(regAds-T.inv)>1?' <span class="badge warn">difere</span>':''}</div></div>
+    <div class="tile"><div class="lbl">Receita gerada pelo Ads</div><div class="val">${fmtBRL(T.rec)}</div><div class="sub">${fmtN(T.vp)} vendas por publicidade</div></div>
+    <div class="tile"><div class="lbl">ACOS geral</div><div class="val">${fmtP(T.acos)}</div><div class="sub">ROAS ${T.roas!=null?T.roas.toFixed(2)+'x':'—'}</div></div>
+    <div class="tile"><div class="lbl">Cliques</div><div class="val">${fmtN(T.clk)}</div><div class="sub">${fmtN(T.imp)} impressões · CTR ${fmtP(T.imp?T.clk/T.imp*100:null,2)}</div></div>
+    <div class="tile"><div class="lbl">Não compensa</div><div class="val neg">${cnt.nao||0}</div><div class="sub">no limite: ${cnt.limite||0} · fraco: ${cnt.fraco||0} · compensa: ${cnt.ok||0}</div></div>
+    <div class="tile"><div class="lbl">Investimento sem SKU</div><div class="val">${fmtBRL(T.semSku)}</div><div class="sub">+ ${fmtBRL(T.semVenda)} em SKUs sem venda por publicidade</div></div>
+  </div>
+  <div class="card"><div class="filters">
+    <label>Campanha<select id="af-camp"><option value="">Todas</option>${camps.map(c=>`<option ${f.camp===c?'selected':''} value="${esc(c)}">${esc(c)}</option>`).join('')}</select></label>
+    <label>Veredito<select id="af-ver"><option value="">Todos</option>${[['nao','Não compensa'],['limite','No limite'],['fraco','Fraco'],['ok','Compensa'],['pouco','Pouca exposição'],['sem','Sem veiculação'],['semsku','Sem SKU vinculado']].map(([k,l])=>`<option value="${k}" ${f.ver===k?'selected':''}>${l}</option>`).join('')}</select></label>
+    <label>Buscar<input type="search" id="af-q" value="${esc(f.q)}" placeholder="título, MLB ou SKU"></label>
+  </div>
+  <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Anúncio</th><th>SKU vinculado</th><th>Campanha</th><th class="r">Impr.</th><th class="r">Cliques</th><th class="r">CTR</th><th class="r">CVR</th><th class="r">Invest.</th><th class="r">Receita</th><th class="r">ACOS</th><th class="r">Limite</th><th class="r">Lucro Ads</th><th>Veredito</th></tr></thead><tbody>
+  ${list.map(a=>{const open=ui.open['a'+a.key];return `<tr class="click ${open?'open':''}" data-act="toggle" data-k="a${a.key}">
+    <td><span class="t" title="${esc(a.tit)}">${esc(a.tit)}</span><span class="small muted mono">${esc(a.mlb)} · ${esc(a.st)}</span></td>
+    <td>${a.sku?`<span class="sku">${esc(a.sku)}</span> <span class="small muted">(${a.como})</span>`:'<span class="badge warn">! sem SKU</span>'}</td>
+    <td class="small">${esc(a.camp)}</td><td class="r">${fmtN(a.imp)}</td><td class="r">${fmtN(a.clk)}</td><td class="r">${fmtP(a.ctr,2)}</td><td class="r">${fmtP(a.cvr)}</td><td class="r">${fmtBRL(a.inv)}</td><td class="r">${fmtBRL(a.rec)}</td><td class="r">${fmtP(a.acos)}</td><td class="r">${fmtP(a.limite)}${a.limiteEstimado?'*':''}</td><td class="r ${cls(a.lucroAds)}">${fmtBRL(a.lucroAds)}</td><td>${badge(a.ver)}</td></tr>
+    ${open?`<tr class="detail"><td colspan="13"><div class="dwrap"><div class="grid g2"><div><h4>Por que esse veredito</h4><p class="small" style="margin:6px 0">${esc(a.ver.why)}</p>${a.ver.notes.map(n=>`<p class="small muted">• ${esc(n)}</p>`).join('')}
+      <div class="calc" style="margin-top:8px"><span class="k">ACOS = investimento ÷ receita do Ads</span><span class="v">${fmtBRL(a.inv)} ÷ ${fmtBRL(a.rec)} = ${fmtP(a.acos)}</span><span class="k">Limite = margem disponível do SKU${a.limiteEstimado?' (padrão das regras)':''}</span><span class="v">${fmtP(a.limite)}</span><span class="k">Lucro estimado do Ads = receita × limite − investimento</span><span class="v ${cls(a.lucroAds)}">${fmtBRL(a.lucroAds)}</span><span class="k">Vendas: ${a.vd} diretas + ${a.vi} indiretas</span><span class="v">${fmtBRL(a.rd)} + ${fmtBRL(a.ri)}</span></div></div>
+      <div><h4>Vincular a um SKU</h4><p class="small muted" style="margin:6px 0">Assim o investimento deste anúncio entra no lucro das vendas do SKU.</p><div class="row"><select id="map-${esc(a.mlb)}"><option value="">— escolher SKU —</option>${skuOpts.map(s=>`<option value="${esc(s)}" ${state.mapeamento[a.mlb]===s?'selected':''}>${esc(s)}</option>`).join('')}</select><button class="btn primary sm" data-act="map-sku" data-mlb="${esc(a.mlb)}" ${Store.canWrite?'':'disabled'}>Salvar vínculo</button>${state.mapeamento[a.mlb]?`<button class="btn sm" data-act="unmap-sku" data-mlb="${esc(a.mlb)}">Remover vínculo</button>`:''}</div></div></div></div></td></tr>`:''}`;}).join('')}
+  </tbody></table></div>
+  <p class="muted small" style="margin-top:8px">* limite padrão das regras, porque o SKU não tem custo cadastrado (ou não foi vinculado).</p></div>`;
+}
+
+// ----- Gastos -----
+function vGastos(){
+  const e=ui.editCusto||{};const list=A.custos.slice().sort((a,b)=>(b.ini||'')<(a.ini||'')?-1:(b.ini||'')>(a.ini||'')?1:0);
+  const dup=list.filter(c=>c.flags.length);
+  return `<div class="row between"><h2>Gastos</h2><span class="muted small">Total ${fmtBRL(A.gastosTotal)}</span></div>
+  ${dup.length?`<div class="alert bad"><b>${dup.length} gasto(s) parecem repetidos.</b> Confira as linhas marcadas abaixo e exclua a cópia, para o lucro não ficar menor do que é.</div>`:''}
+  <div class="card"><h3>${e.id?'Editar gasto':'Registrar gasto'}</h3>
+    <div class="form">
+      <label>Tipo<select id="c-tipo">${TIPOS_GASTO.map(t=>`<option ${e.tipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+      <label class="full" style="grid-column:span 2">Descrição<input type="text" id="c-desc" value="${esc(e.desc||'')}" placeholder="ex.: Ads outubro, Seguidores ML (2 contas)"></label>
+      <label>Valor (R$)<input type="number" step="0.01" id="c-valor" value="${e.valor!=null?e.valor:''}"></label>
+      <label>Início<input type="date" id="c-ini" value="${e.ini||''}"></label>
+      <label>Fim<input type="date" id="c-fim" value="${e.fim||''}"></label>
+      <label class="full">Observação<input type="text" id="c-obs" value="${esc(e.obs||'')}"></label>
+      <div class="row"><button class="btn primary" data-act="save-custo" ${Store.canWrite?'':'disabled'}>${e.id?'Salvar alterações':'Adicionar'}</button>${e.id?'<button class="btn" data-act="cancel-custo">Cancelar</button>':''}</div>
+    </div>
+    <div id="dup-live" style="margin-top:10px"></div>
+    <p class="muted small" style="margin-top:8px">O painel avisa quando um gasto parece repetido: mesmo tipo com mesmo valor no mesmo período, mesma descrição no mesmo período, ou dois gastos de Ads com datas sobrepostas. Gastos com início e fim entram no rateio por venda e nos fechamentos.</p>
+  </div>
+  <div class="card"><h3>Lançamentos</h3>
+  ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Tipo</th><th>Descrição</th><th class="r">Valor</th><th>Período</th><th class="r">Por dia</th><th>Alerta</th><th></th></tr></thead><tbody>
+  ${list.map(c=>{const dias=c.ini&&c.fim?dayDiff(c.ini,c.fim)+1:null;return `<tr ${c.flags.length?'style="background:var(--bad-soft)"':''}><td><span class="badge ${c.tipo==='Ads'?'ml':''}">${esc(c.tipo)}</span></td><td>${esc(c.desc)}${c.obs?`<span class="t small muted">${esc(c.obs)}</span>`:''}</td><td class="r">${fmtBRL(+c.valor)}</td><td class="num small">${c.ini?fmtD(c.ini)+' a '+fmtD(c.fim):'<span class="muted">sem período</span>'}</td><td class="r small">${dias?fmtBRL(c.valor/dias):'—'}</td>
+    <td class="small">${c.flags.map(f=>`<span class="badge bad">✕ repetido?</span> ${esc(f.msg)} com “${esc(f.com.desc||f.com.tipo)}” (${fmtBRL(+f.com.valor)})`).join('<br>')}</td>
+    <td class="row"><button class="btn sm" data-act="edit-custo" data-id="${c.id}">Editar</button><button class="btn sm danger" data-act="del-custo" data-id="${c.id}" ${Store.canWrite?'':'disabled'}>Excluir</button></td></tr>`;}).join('')}
+  </tbody></table></div>
+  <div class="row" style="margin-top:10px">${Object.keys(A.gastosPorTipo).map(t=>`<span class="badge">${esc(t)}: ${fmtBRL(A.gastosPorTipo[t])}</span>`).join('')}</div>`:'<p class="muted">Nenhum gasto registrado. Comece pelo investimento em Ads e pelos seguidores do ML (R$ 50 por mês para cada conta).</p>'}
+  </div>`;
+}
+function liveDup(){
+  const el=document.getElementById('dup-live');if(!el)return;
+  const c={tipo:document.getElementById('c-tipo').value,desc:document.getElementById('c-desc').value,valor:+document.getElementById('c-valor').value||0,ini:document.getElementById('c-ini').value,fim:document.getElementById('c-fim').value};
+  const e=ui.editCusto||{};const hits=[];
+  A.custos.forEach(o=>{if(o.id===e.id||o.tipo!==c.tipo)return;const ov=(o.ini&&o.fim&&c.ini&&c.fim)?overlapDays(o.ini,o.fim,c.ini,c.fim)>0:(!o.ini&&!c.ini);
+    if(Math.abs((+o.valor||0)-c.valor)<0.011&&ov&&c.valor)hits.push(['mesmo valor e período sobreposto',o]);
+    else if(norm(c.desc)&&norm(c.desc)===norm(o.desc)&&ov)hits.push(['mesma descrição e período sobreposto',o]);
+    else if(c.tipo==='Ads'&&ov&&c.ini)hits.push(['já existe gasto de Ads nesse período',o]);});
+  el.innerHTML=hits.length?`<div class="alert bad"><b>Parece repetido:</b> ${hits.map(([m,o])=>esc(m)+' com “'+esc(o.desc||o.tipo)+'” ('+fmtBRL(+o.valor)+(o.ini?', '+fmtD(o.ini)+' a '+fmtD(o.fim):'')+')').join('; ')}. Se for mesmo outro gasto, pode salvar.</div>`:'';
+}
+
+// ----- Fechamentos -----
+function vFech(){
+  if(!hasData())return `<h2>Fechamentos</h2>${emptyHint()}`;
+  const ws=A.winList;const fm=Object.values(A.fatMes).sort((a,b)=>a.ym<b.ym?-1:1);const vm=Object.values(A.vendMes).sort((a,b)=>a.ym<b.ym?-1:1);
+  return `<div class="row between"><h2>Fechamentos e valores a receber</h2><span class="muted small">Mesma lógica da sua planilha: soma do Total ML pela data de liberação</span></div>
+  <div class="card"><h3>A receber por período (data de liberação do dinheiro)</h3>
+  ${ws.length?`<div class="tbl-wrap"><table><thead><tr><th>Período</th><th class="r">Vendas</th><th class="r">A receber (Total ML)</th><th class="r">Gastos do período</th><th class="r">Líquido previsto</th><th class="r">Recebido</th><th class="r">Faltam</th><th></th></tr></thead><tbody>
+  ${ws.map(w=>{const open=ui.open['w'+w.key];return `<tr class="click ${open?'open':''}" data-act="toggle" data-k="w${w.key}"><td class="num"><b>${w.label}</b></td><td class="r">${fmtN(w.n)}</td><td class="r">${fmtBRL(w.tot)}</td><td class="r">${fmtBRL(-w.gastoTot)}</td><td class="r ${cls(w.liquido)}"><b>${fmtBRL(w.liquido)}</b></td><td class="r">${fmtBRL(w.recebido)}</td><td class="r ${cls(w.faltam)}">${fmtBRL(w.faltam)}</td><td class="small muted">${esc(w.obs)}</td></tr>
+    ${open?`<tr class="detail"><td colspan="8"><div class="dwrap"><div class="grid g2"><div><h4>Gastos rateados por dia neste período</h4>${w.gastos.length?`<div class="calc">${w.gastos.map(g=>`<span class="k">${esc(g.c.tipo)} · ${esc(g.c.desc)} (${g.dias} de ${g.dur} dias)</span><span class="v">${fmtBRL(-g.v)}</span>`).join('')}<span class="k sum">A receber − gastos</span><span class="v sum">${fmtBRL(w.liquido)}</span></div>`:'<p class="small muted">Nenhum gasto com datas dentro deste período.</p>'}</div>
+    <div><h4>Registrar o que já foi pago</h4><div class="inline-edit"><label>Recebido (R$)<input type="number" step="0.01" id="fw-rec-${w.key}" value="${w.recebido||''}"></label><label>Observação<input type="text" id="fw-obs-${w.key}" value="${esc(w.obs)}" placeholder="ex.: pago em 31/10"></label><button class="btn primary" data-act="save-fech" data-k="${w.key}" ${Store.canWrite?'':'disabled'}>Salvar</button></div><p class="small muted" style="margin-top:6px">Faltam = líquido previsto − recebido.</p></div></div></div></td></tr>`:''}`;}).join('')}
+  </tbody></table></div>`:'<p class="muted">As vendas importadas não trazem data de liberação (coluna “Mês de faturamento” com data). Vendas já faturadas aparecem abaixo por mês.</p>'}
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Já faturado por mês</h3><div class="tbl-wrap"><table><thead><tr><th>Mês de faturamento</th><th class="r">Vendas</th><th class="r">Total ML</th></tr></thead><tbody>${fm.map(m=>`<tr><td>${fmtYM(m.ym)}</td><td class="r">${fmtN(m.n)}</td><td class="r">${fmtBRL(m.tot)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">—</td></tr>'}</tbody></table></div></div>
+    <div class="card"><h3>Vendas por mês (data da venda)</h3><div class="tbl-wrap"><table><thead><tr><th>Mês</th><th class="r">Vendas</th><th class="r">Un</th><th class="r">Receita</th><th class="r">Total ML</th><th class="r">Lucro</th></tr></thead><tbody>${vm.map(m=>`<tr><td>${fmtYM(m.ym)}</td><td class="r">${fmtN(m.n)}</td><td class="r">${fmtN(m.un)}</td><td class="r">${fmtBRL(m.rp)}</td><td class="r">${fmtBRL(m.tot)}</td><td class="r ${cls(m.lucro)}">${fmtBRL(m.lucro)}</td></tr>`).join('')}</tbody></table></div><p class="small muted" style="margin-top:6px">Lucro aqui considera custo do produto, embalagem, Ads atribuído e rateio de gastos fixos por venda.</p></div>
+  </div>`;
+}
+
+// ----- Full -----
+function vFull(){
+  if(!hasData())return `<h2>Full</h2>${emptyHint()}`;
+  const f=ui.ff;const cfg=A.cfg;
+  const list=A.skuList.filter(s=>!f.q||norm(s.sku).includes(norm(f.q))).sort((a,b)=>({ok:0,avaliar:1,nao:2,sem:3}[a.fullVer.code]-{ok:0,avaliar:1,nao:2,sem:3}[b.fullVer.code])||b.un30-a.un30);
+  const ok=A.skuList.filter(s=>s.fullVer.code==='ok').length,av=A.skuList.filter(s=>s.fullVer.code==='avaliar').length;
+  return `<div class="row between"><h2>Vale enviar ao Full?</h2><span class="muted small">Giro medido nos 30 dias até ${fmtD(A.maxD)}</span></div>
+  <div class="tiles"><div class="tile"><div class="lbl">Compensa Full</div><div class="val pos">${ok}</div></div><div class="tile"><div class="lbl">Avaliar</div><div class="val">${av}</div></div><div class="tile"><div class="lbl">Regra de giro</div><div class="val">${cfg.fullMinUnidades30} un</div><div class="sub">em 30 dias · margem mín. ${cfg.fullMinMargem}% · cancel. máx. ${cfg.fullMaxCancel}%</div></div></div>
+  ${A.paresList.length?`<div class="card"><h3>Comparação Full × sem Full (mesmo produto)</h3><p class="small muted" style="margin-bottom:8px">SKUs com “SEMFULL” no nome comparados com o SKU irmão. Mostra na prática se a versão no Full gira mais e lucra mais por unidade.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>SKU</th><th class="r">Vendas</th><th class="r">Un</th><th class="r">Un/30d</th><th class="r">Preço médio</th><th class="r">Total ML/un</th><th class="r">Lucro/un</th><th class="r">Cancel.</th></tr></thead><tbody>
+    ${A.paresList.map(g=>g.sort((a,b)=>a.sku.localeCompare(b.sku)).map((s,i)=>`<tr ${i===0?'style="border-top:2px solid var(--line2)"':''}><td><span class="sku">${esc(s.sku)}</span></td><td class="r">${s.n}</td><td class="r">${s.un}</td><td class="r">${s.un30}</td><td class="r">${fmtBRL(s.precoMed)}</td><td class="r">${fmtBRL(s.un?s.tot/s.un:0)}</td><td class="r ${cls(s.lucro)}">${fmtBRL(s.un?s.lucro/s.un:0)}</td><td class="r">${fmtP(s.cancelPct)}</td></tr>`).join('')).join('')}
+    </tbody></table></div></div>`:''}
+  <div class="card"><div class="filters"><label>Buscar<input type="search" id="ff-q" value="${esc(f.q)}" placeholder="SKU"></label></div>
+  <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>SKU</th><th class="r">Vendas</th><th class="r">Un/30d</th><th class="r">30d anteriores</th><th class="r">Margem</th><th class="r">Cancel.</th><th class="r">Preço médio</th><th>Veredito</th></tr></thead><tbody>
+  ${list.map(s=>{const open=ui.open['f'+s.pid];return `<tr class="click ${open?'open':''}" data-act="toggle" data-k="f${s.pid}"><td><span class="sku">${esc(s.sku)}</span><span class="t small muted">${esc(s.tit)}</span></td><td class="r">${s.n}</td><td class="r">${s.un30}<div class="meter"><i style="width:${Math.min(100,s.un30/Math.max(1,cfg.fullMinUnidades30)*100)}%"></i></div></td><td class="r">${s.un30prev}</td><td class="r">${s.custoEstimado?'<span class="muted">sem custo</span>':fmtP(s.margem)}</td><td class="r">${fmtP(s.cancelPct)}</td><td class="r">${fmtBRL(s.precoMed)}</td><td>${badge(s.fullVer)}${s.fullNow?' <span class="badge info">já no Full</span>':''}</td></tr>
+    ${open?`<tr class="detail"><td colspan="8"><div class="dwrap"><p class="small" style="margin-bottom:8px">${esc(s.fullVer.why)}</p><div class="rules">${s.fullVer.rules.map(r=>`<div class="rule ${r.ok===true?'ok':r.ok===false?'no':'na'}"><span class="ic">${r.ok===true?'✓':r.ok===false?'✕':'?'}</span><span>${r.nome}${r.req?'':' <span class="muted small">(informativo)</span>'}</span><span class="m">${r.m}</span></div>`).join('')}</div>
+    <p class="small muted" style="margin-top:8px">Lembre: no Full o ML cobra armazenagem de estoque parado e o envio ao CD tem custo. Produto que gira ${cfg.fullMinUnidades30}+ unidades por mês costuma pagar isso com folga e ganha prazo de entrega menor, o que sobe a conversão.</p></div></td></tr>`:''}`;}).join('')}
+  </tbody></table></div></div>`;
+}
+
+// ----- Regras -----
+function vRegras(){
+  const c=A.cfg;
+  const F=(id,l,step='1')=>`<label>${l}<input type="number" step="${step}" id="cfg-${id}" value="${c[id]}"></label>`;
+  return `<h2>Regras e forma de cálculo</h2>
+  <div class="card"><h3>Parâmetros (editáveis)</h3>
+    <h4 style="margin:8px 0">Custos</h4><div class="form">${F('embalagemPadrao','Embalagem padrão por venda (R$)','0.01')}${F('custoPadraoPct','Custo estimado quando não cadastrado (% da receita)','1')}${F('acosLimitePadrao','Limite de ACOS quando sem custo (%)','1')}</div>
+    <h4 style="margin:14px 0 8px">Ads</h4><div class="form">${F('adsMinImpressoes','Mín. impressões para julgar')}${F('adsMinCliques','Mín. cliques para julgar')}${F('adsCtrFraco','CTR fraco abaixo de (%)','0.01')}${F('adsCvrFraco','CVR fraco abaixo de (%)','0.1')}${F('adsFolga','“Compensa” até esta fração do limite (%)')}${F('adsInvestSemVenda','Investiu sem vender: não compensa a partir de (R$)','1')}</div>
+    <h4 style="margin:14px 0 8px">Full</h4><div class="form">${F('fullMinUnidades30','Mín. unidades em 30 dias')}${F('fullMinMargem','Margem líquida mínima (%)')}${F('fullMaxCancel','Cancelamentos máx. (%)')}${F('fullMinVendas','Mín. vendas no histórico')}${F('fullPrecoFreteGratis','Frete grátis a partir de (R$)','1')}</div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="save-cfg" ${Store.canWrite?'':'disabled'}>Salvar regras</button><button class="btn" data-act="reset-cfg">Voltar ao padrão</button></div>
+  </div>
+  ${howCard()}`;
+}
+function howCard(){return `<div class="card"><h3>Como o painel calcula</h3><div class="how">
+  <p><b>1. Cada venda</b> segue a conta do próprio Mercado Livre: <code>receita por produtos + acréscimo − taxa de parcelamento − tarifa de venda + receita por envio − tarifas de envio + descontos e bônus − cancelamentos = Total ML</code>. Esse Total é o que cai na sua conta.</p>
+  <p><b>2. Lucro da venda</b> = Total ML − custo do produto (custo unitário × unidades) − embalagem − Ads atribuído − rateio de gastos fixos. O Ads atribuído vale só para vendas marcadas “Venda por publicidade: Sim”: investimento do anúncio no relatório ÷ nº de vendas por publicidade daquele SKU. Gastos fixos (seguidores, etc.) com início e fim são divididos igualmente entre as vendas válidas do período.</p>
+  <p><b>3. Pacotes</b> (“Pacote de N produtos”): o ML põe o dinheiro só na linha do pacote. O painel divide entre os produtos pelo preço médio de cada SKU × unidades, e marca como “rateado”.</p>
+  <p><b>4. Reimportar</b> o mesmo período não duplica: a venda é identificada pelo nº e só é atualizada (estado, reembolsos). No Ads, a chave é anúncio + campanha + período.</p>
+  <p><b>5. Ads compensa?</b> Limite de ACOS do SKU = (Total ML − custo − embalagem) ÷ receita, ou seja, quanto da receita sobra para pagar anúncio. Se o ACOS do relatório (investimento ÷ receita do Ads) passa do limite, o anúncio dá prejuízo em cada venda que gera: <b>não compensa</b>. Entre ${A.cfg.adsFolga}% e 100% do limite: <b>no limite</b>. Abaixo: <b>compensa</b>. “Fraco” é o anúncio que aparece e não recebe clique (CTR baixo) ou recebe clique e não vende (CVR baixo); aí o problema é foto, título, preço ou frete, não o orçamento. Com menos de ${A.cfg.adsMinImpressoes} impressões o painel não julga.</p>
+  <p><b>6. Vale enviar ao Full?</b> Precisa girar (≥ ${A.cfg.fullMinUnidades30} unidades em 30 dias), ter margem líquida ≥ ${A.cfg.fullMinMargem}%, poucos cancelamentos (≤ ${A.cfg.fullMaxCancel}%) e histórico mínimo. Giro é o que paga a armazenagem; margem é o que sobra depois dela. A tendência e o preço (frete grátis a partir de R$ ${A.cfg.fullPrecoFreteGratis}) são informativos. Se você tem SKU com e sem Full do mesmo produto, a aba Full mostra os dois lado a lado.</p>
+  <p><b>7. Gasto repetido:</b> ao salvar ou importar, o painel compara tipo, valor, descrição e período e avisa antes de contar duas vezes.</p>
+  <p><b>8. Fechamentos:</b> igual à sua planilha. Soma o Total ML pela data de liberação (coluna “Mês de faturamento” quando vem como data), em períodos 01–07, 08–14, 15–21 e 22–fim. Os gastos entram rateados por dia. Você registra o que já recebeu e o painel mostra o que falta.</p>
+</div></div>`;}
+
+// ---------- eventos ----------
+function bindCommon(){
+  const app=document.getElementById('app');
+  app.onclick=async ev=>{
+    const el=ev.target.closest('[data-act]');if(!el)return;
+    if(ev.target.closest('input,select,button:not([data-act]),label,a'))if(!ev.target.closest('button[data-act]'))return;
+    const act=el.dataset.act;
+    if(act==='toggle'){ui.open[el.dataset.k]=!ui.open[el.dataset.k];render();}
+    else if(act==='goto-sku'){ui.sf.q=el.dataset.sku;ui.open['s'+pidOf(el.dataset.sku)]=true;location.hash='#anuncios';}
+    else if(act==='vf-more'){ui.vf.lim+=200;render();}
+    else if(act==='vf-clear'){ui.vf={de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100};render();}
+    else if(act==='commit')await commitPending(+el.dataset.i);
+    else if(act==='discard'){ui.pending.splice(+el.dataset.i,1);render();}
+    else if(act==='rm-import'){if(el.dataset.sure){await removeImport(el.dataset.id);}else{el.dataset.sure='1';el.textContent='Confirmar remoção';}}
+    else if(act==='backup')await backup();
+    else if(act==='wipe'){const c=document.getElementById('wipe-confirm');c.innerHTML='<button class="btn danger sm" data-act="wipe-yes">Sim, apagar tudo</button>';}
+    else if(act==='wipe-yes')await wipeAll();
+    else if(act==='save-prod'){const pid=el.dataset.pid,sku=el.dataset.sku;const g=k=>document.getElementById(`pc-${k}-${pid}`).value;
+      const d={sku,custo:g('custo')===''?null:+g('custo'),emb:g('emb')===''?null:+g('emb'),mlbs:g('mlbs').split(',').map(s=>s.trim()).filter(Boolean),obs:g('obs')};
+      await Store.put('produtos',pid,d);toast('Custos de '+sku+' salvos');}
+    else if(act==='map-sku'){const mlb=el.dataset.mlb;const sku=document.getElementById('map-'+mlb).value;const m=Object.assign({},state.mapeamento);if(sku)m[mlb]=sku;else delete m[mlb];await Store.put('config','mapeamento',m);toast('Vínculo salvo');}
+    else if(act==='unmap-sku'){const m=Object.assign({},state.mapeamento);delete m[el.dataset.mlb];await Store.put('config','mapeamento',m);}
+    else if(act==='save-custo'){const g=id=>document.getElementById(id).value;const e=ui.editCusto||{};
+      const d={tipo:g('c-tipo'),desc:g('c-desc').trim(),valor:+g('c-valor'),ini:g('c-ini')||null,fim:g('c-fim')||null,obs:g('c-obs').trim()};
+      if(!d.valor){toast('Informe o valor');return;}if(d.ini&&!d.fim)d.fim=d.ini;if(d.fim&&!d.ini)d.ini=d.fim;if(d.ini&&d.fim&&d.fim<d.ini){toast('Fim antes do início');return;}
+      if(e.imp)d.imp=e.imp;await Store.put('custos',e.id||uid('c'),d);ui.editCusto=null;toast('Gasto salvo');render();}
+    else if(act==='edit-custo'){ui.editCusto=Object.assign({},state.custos[el.dataset.id]);render();window.scrollTo(0,0);}
+    else if(act==='cancel-custo'){ui.editCusto=null;render();}
+    else if(act==='del-custo'){if(el.dataset.sure){await Store.del('custos',el.dataset.id);toast('Gasto excluído');}else{el.dataset.sure='1';el.textContent='Confirmar';}}
+    else if(act==='save-fech'){const k=el.dataset.k;const f=Object.assign({},state.fechamentos);f[k]={recebido:+document.getElementById('fw-rec-'+k).value||0,obs:document.getElementById('fw-obs-'+k).value};await Store.put('config','fechamentos',f);toast('Salvo');}
+    else if(act==='save-cfg'){const d={};for(const k in DEFAULT_CFG){const v=document.getElementById('cfg-'+k).value;d[k]=v===''?DEFAULT_CFG[k]:+v;}await Store.put('config','geral',d);toast('Regras salvas');}
+    else if(act==='reset-cfg'){await Store.put('config','geral',{});toast('Regras no padrão');}
+  };
+  app.oninput=ev=>{const id=ev.target.id;
+    if(id.startsWith('vf-')){const k=id.slice(3);ui.vf[k]=ev.target.value;ui.vf.lim=100;if(k==='q')debounce(render);else render();}
+    else if(id.startsWith('af-')){ui.af[id.slice(3)]=ev.target.value;debounce(render);}
+    else if(id.startsWith('sf-')){ui.sf[id.slice(3)]=ev.target.value;debounce(render);}
+    else if(id==='ff-q'){ui.ff.q=ev.target.value;debounce(render);}
+    else if(id.startsWith('c-'))liveDup();
+  };
+  app.onchange=ev=>{if(ev.target.id==='file')handleFiles([...ev.target.files]);if(ev.target.id==='restore')restore(ev.target.files[0]);};
+  const drop=document.getElementById('drop');
+  if(drop){drop.onclick=e=>{if(e.target.tagName!=='INPUT')document.getElementById('file').click();};
+    drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};drop.ondragleave=()=>drop.classList.remove('over');
+    drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');handleFiles([...e.dataTransfer.files]);};}
+  // tooltip do gráfico
+  const tip=document.getElementById('tip');
+  app.querySelectorAll('[data-tip]').forEach(n=>{n.addEventListener('mousemove',e=>{tip.textContent=n.dataset.tip;tip.style.display='block';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY+12)+'px';});n.addEventListener('mouseleave',()=>tip.style.display='none');});
+  // manter foco em campos de filtro após re-render
+  if(ui._focus){const f=document.getElementById(ui._focus);if(f){f.focus();try{f.setSelectionRange(f.value.length,f.value.length);}catch(e){}}}
+  app.addEventListener('focusin',e=>{if(e.target.id)ui._focus=e.target.id;});
+}
+let _deb;function debounce(fn){clearTimeout(_deb);_deb=setTimeout(fn,250);}
+async function backup(){
+  const data={v:1,em:new Date().toISOString(),config:state.config,mapeamento:state.mapeamento,fechamentos:state.fechamentos,custos:state.custos,produtos:state.produtos,imports:state.imports,vendas:Object.values(state.vendas),ads:Object.values(state.ads)};
+  const json=JSON.stringify(data);
+  let dl=null;try{if(window.claude&&window.claude.use)dl=await window.claude.use('downloads');}catch(e){}
+  if(dl){try{await dl.save({filename:'painel-ml-backup-'+new Date().toISOString().slice(0,10)+'.json',data:json});toast('Backup gerado');}catch(e){toast('Download não concluído');}}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download='painel-ml-backup.json';a.click();}
+}
+async function restore(file){
+  if(!file)return;try{const d=JSON.parse(await file.text());
+    const v={},a={};(d.vendas||[]).forEach(r=>v[r.id]=r);(d.ads||[]).forEach(r=>a[r.key]=r);
+    await Store.writeRows('vendas',v);await Store.writeRows('ads',a);
+    await Store.put('config','geral',d.config||{});await Store.put('config','mapeamento',d.mapeamento||{});await Store.put('config','fechamentos',d.fechamentos||{});
+    for(const id in state.custos)await Store.del('custos',id);for(const id in d.custos||{}){const x=Object.assign({},d.custos[id]);delete x.id;await Store.put('custos',id,x);}
+    for(const id in state.produtos)await Store.del('produtos',id);for(const id in d.produtos||{}){const x=Object.assign({},d.produtos[id]);delete x.id;await Store.put('produtos',id,x);}
+    for(const id in state.imports)await Store.del('imports',id);for(const id in d.imports||{}){const x=Object.assign({},d.imports[id]);delete x.id;await Store.put('imports',id,x);}
+    toast('Backup restaurado');render();
+  }catch(e){console.error(e);toast('Não consegui restaurar: '+(e.message||e));}
+}
+async function wipeAll(){
+  await Store.writeRows('vendas',{});await Store.writeRows('ads',{});
+  for(const id in state.custos)await Store.del('custos',id);for(const id in state.produtos)await Store.del('produtos',id);for(const id in state.imports)await Store.del('imports',id);
+  await Store.put('config','mapeamento',{});await Store.put('config','fechamentos',{});
+  toast('Tudo apagado');render();
+}
+
+// ---------- início ----------
+routeFromHash();
+render();
+Store.init().then(()=>render());
+</script>
+
+</body>
+</html>

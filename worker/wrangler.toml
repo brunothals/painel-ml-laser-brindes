@@ -1,0 +1,19 @@
+name = "ml-laser-brindes"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Banco de dados simples do Cloudflare onde o serviço guarda o acesso ao ML e o histórico.
+# Crie em Workers & Pages > KV > Create namespace e cole o ID abaixo.
+[[kv_namespaces]]
+binding = "ML_KV"
+id = "COLE_AQUI_O_ID_DO_KV"
+
+# Coleta automática uma vez por dia (06:17 de Brasília = 09:17 UTC).
+[triggers]
+crons = ["17 9 * * *"]
+
+# ML_APP_ID, ML_SECRET e APP_KEY não ficam neste arquivo.
+# Cadastre como variáveis secretas no painel do Cloudflare ou com:
+#   npx wrangler secret put ML_APP_ID
+#   npx wrangler secret put ML_SECRET
+#   npx wrangler secret put APP_KEY

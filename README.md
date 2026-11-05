@@ -15,6 +15,7 @@ Painel para fechamento do Mercado Livre: importa o relatório de **Vendas** e o 
 - **Comissões semanais**: quem recebe, percentual, base (lucro após custos, Total ML ou receita) e unidade; valor de cada semana, marcação de pago e ajuste quando uma venda é cancelada depois do pagamento.
 - **Catálogo**: lista de todas as artes (colada ou importada) comparada com os SKUs no Mercado Livre (vendas e planilha de anúncios do ML), mostrando o que ainda falta subir, com as de tema em alta primeiro.
 - **Tendências dos concorrentes (DTF UV)**: temas em alta no ML (lista editável, começa com o que estava em destaque em 05/11/2026), link de busca de concorrentes por tema, quantas artes vocês têm em cada tema e calendário de datas de hype com prazo para criar e postar.
+- **Mercado ML** (concorrentes e mais vendidos): buscas em alta da categoria, os 20 mais vendidos com quem subiu e quem caiu, e os primeiros anúncios de cada termo, puxados pela API oficial do Mercado Livre por uma conta separada. Precisa do serviço da pasta [`worker`](worker/README.md), que roda de graça no Cloudflare.
 - **Desconto máximo por folha** (aba Folha impressa): preço mínimo e desconto máximo de cada tamanho antes de dar prejuízo, usando tarifa, frete e Ads reais de cada tamanho.
 - **Imposto** como percentual da receita (geral ou por unidade) e **quantidade a enviar ao Full** pelo giro de 30 dias.
 - **Full**: regra a regra, se vale enviar o anúncio ao Mercado Envios Full; compara SKUs FULL × SEMFULL.
@@ -28,6 +29,8 @@ Painel para fechamento do Mercado Livre: importa o relatório de **Vendas** e o 
 Importar: aba **Importar**, solte o `.xlsx` de Vendas (Vendas → Baixar relatório) e o de Ads (Publicidade → Product Ads → Relatórios). O tipo é detectado pelo cabeçalho. Reimportar o mesmo período não duplica vendas e mostra o que mudou (novas, canceladas, reembolsos, diferença no Total ML).
 
 ## Arquivos
+
+- `worker/` — serviço que conecta o painel à API do Mercado Livre (passo a passo no README da pasta).
 
 - `index.html` — página completa para abrir direto / GitHub Pages.
 - `painel-ml.html` — mesmo conteúdo sem o esqueleto HTML, no formato que o claude.ai publica.

@@ -194,6 +194,7 @@ body.apres .topcard .big{font-size:1.5rem}
       <a href="#anuncios" data-v="anuncios">Anúncios</a>
       <a href="#catalogo" data-v="catalogo">Catálogo</a>
       <a href="#tendencias" data-v="tendencias">Tendências</a>
+      <a href="#mercado" data-v="mercado">Mercado ML</a>
       <a href="#ads" data-v="ads">Ads</a>
       <a href="#gastos" data-v="gastos">Gastos</a>
       <a href="#comissoes" data-v="comissoes">Comissões</a>
@@ -616,8 +617,8 @@ function uid(p){return (p||'x')+Date.now().toString(36)+Math.random().toString(3
 
 // ---------- armazenamento ----------
 const COLLS=['config','custos','produtos','imports','vendas','ads'];
-const state={config:{},mapeamento:{},fechamentos:{},folha:{},rateio:{},comissao:{},catalogo:{},anunciosML:{},tendencias:{},custos:{},produtos:{},imports:{},vendas:{},ads:{}};
-const CONFIG_DOCS=['mapeamento','fechamentos','folha','rateio','comissao','catalogo','anunciosML','tendencias'];
+const state={config:{},mapeamento:{},fechamentos:{},folha:{},rateio:{},comissao:{},catalogo:{},anunciosML:{},tendencias:{},mercadoCfg:{},mercado:{},custos:{},produtos:{},imports:{},vendas:{},ads:{}};
+const CONFIG_DOCS=['mapeamento','fechamentos','folha','rateio','comissao','catalogo','anunciosML','tendencias','mercadoCfg','mercado'];
 const Store={mode:'local',db:null,canWrite:true,ready:false,
   async init(){
     let db=null;
@@ -672,7 +673,7 @@ function setSync(){const el=document.getElementById('sync');
 
 // ---------- UI ----------
 const ui={unidade:(()=>{try{const u=localStorage.getItem('lb_unid');return ['todos','dtf','canecas'].includes(u)?u:'todos';}catch(e){return 'todos';}})(),view:'resumo',apres:(()=>{try{return localStorage.getItem('lb_apres')==='1';}catch(e){return false;}})(),open:{},vf:{de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100},af:{camp:'',ver:'',q:''},sf:{q:'',ord:'rp'},editCusto:null,pending:[],ff:{q:''}};
-const VIEWS=['resumo','visao','mes','catalogo','tendencias','comissoes','importar','vendas','anuncios','ads','gastos','folha','rateio','fechamentos','full','regras'];
+const VIEWS=['resumo','visao','mes','catalogo','tendencias','mercado','comissoes','importar','vendas','anuncios','ads','gastos','folha','rateio','fechamentos','full','regras'];
 let A=null,renderT=null;
 function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(render,30);}
 function routeFromHash(){const h=(location.hash||'').replace('#','');ui.view=VIEWS.includes(h)?h:'resumo';}
@@ -685,7 +686,7 @@ function render(){
   const nAlert=countAlerts();const tabG=document.querySelector('#tabs a[data-v=gastos]');tabG.innerHTML='Gastos'+(nAlert.dup?` <span class="badge warn">${nAlert.dup}</span>`:'');
   const app=document.getElementById('app');
   document.body.classList.toggle('apres',!!ui.apres);
-  const fn={resumo:vResumo,visao:vVisao,mes:vMes,catalogo:vCatalogo,tendencias:vTendencias,comissoes:vComissoes,importar:vImportar,vendas:vVendas,anuncios:vAnuncios,ads:vAds,gastos:vGastos,folha:vFolha,rateio:vRateio,fechamentos:vFech,full:vFull,regras:vRegras}[ui.view];
+  const fn={resumo:vResumo,visao:vVisao,mes:vMes,catalogo:vCatalogo,tendencias:vTendencias,mercado:vMercado,comissoes:vComissoes,importar:vImportar,vendas:vVendas,anuncios:vAnuncios,ads:vAds,gastos:vGastos,folha:vFolha,rateio:vRateio,fechamentos:vFech,full:vFull,regras:vRegras}[ui.view];
   const aviso=ui.unidade!=='todos'&&!['folha','rateio','importar','regras'].includes(ui.view)?`<div class="alert info">Mostrando só <b>${UNID_NOME[ui.unidade]}</b>. Gastos “gerais” entram pela metade. Para ver tudo, escolha <b>Ambos</b> no topo.</div>`:'';
   app.innerHTML=`${aviso}<section data-view="${ui.view}">${fn()}</section>`;
   bindCommon();
@@ -1501,6 +1502,68 @@ function vTendencias(){
   </tbody></table></div></div>`;
 }
 
+// ---------- Mercado ML (API oficial, pelo serviço no Cloudflare) ----------
+const MSG_BLOQ='Esta página não consegue falar com sites de fora (o claude.ai bloqueia). Use “Baixar dados do ML” e depois “Importar arquivo baixado”, ou abra o painel pelo index.html do GitHub, onde o botão funciona direto.';
+function mercCfg(){const c=state.mercadoCfg||{};const padrao=tendCfg().map(t=>String(t.palavras||t.nome).split(',')[0].trim()).filter(Boolean).slice(0,6).map(x=>'adesivo dtf uv '+x).join(', ');
+  return{url:String(c.url||'').trim().replace(/\/+$/,''),key:c.key||'',cats:(c.cats||[]).slice(),termos:c.termos!=null?c.termos:padrao};}
+function mercParams(termos){const c=mercCfg();return{cats:c.cats.map(x=>x.id).join(','),termos:String(termos!=null?termos:c.termos||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean).slice(0,12).join(',')};}
+function mercLink(path,params){const c=mercCfg();if(!/^https:\/\/[^/]+/.test(c.url))return null;let u;try{u=new URL(c.url+path);}catch(e){return null;}u.searchParams.set('key',c.key);for(const k in params||{})if(params[k])u.searchParams.set(k,params[k]);return u.toString();}
+async function mercFetch(path,params){const link=mercLink(path,params);if(!link)throw new Error('Informe o endereço do serviço (começa com https://) e salve.');let r;try{r=await fetch(link);}catch(e){const er=new Error(MSG_BLOQ);er.bloqueado=true;throw er;}
+  const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.erro)||('O serviço respondeu com erro '+r.status+'.'));return j;}
+async function mercSalvarSnap(snap){if(!snap||!Array.isArray(snap.categorias))throw new Error('o arquivo não veio do serviço do ML.');const s=JSON.parse(JSON.stringify(snap));
+  if(JSON.stringify(s).length>240000)s.buscas=(s.buscas||[]).map(b=>Object.assign({},b,{itens:(b.itens||[]).slice(0,8)}));
+  if(JSON.stringify(s).length>240000)throw new Error('dados grandes demais; escolha menos categorias ou termos.');await Store.put('config','mercado',s);}
+function minhasArtes(texto){const stop=new Set(['adesivo','adesivos','para','caneca','canecas','copo','copos','cartela','folha','folhas','personalizado','personalizada','sortido','sortida','unidades']);
+  const ws=norm(texto).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=4&&!stop.has(w));if(!ws.length)return null;
+  return analysisAll().skuList.filter(s=>s.unit==='dtf'&&ws.every(w=>norm(s.tit+' '+s.sku).includes(w))).length;}
+function temaDe(titulo){const t=tendCfg().find(x=>kwTest(kwRe(x.palavras),titulo));return t?t.nome:null;}
+function vMercado(){
+  const W=Store.canWrite?'':'disabled';const c=mercCfg();const snap=state.mercado&&Array.isArray(state.mercado.categorias)?state.mercado:null;const m=ui.merc||(ui.merc={});
+  const dl=mercLink('/api/mercado',Object.assign(mercParams(),{download:'1'}));const auth=mercLink('/auth/start');
+  let quando='';if(snap&&snap.gerado){const d=new Date(snap.gerado);quando=fmtDT(isoDate(d.getFullYear(),d.getMonth()+1,d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()));}
+  const atual=`<div class="card"><div class="row between"><h3>Atualizar</h3>${snap?`<span class="small muted">Últimos dados: ${quando} · conta ${esc((snap.conta&&(snap.conta.nickname||snap.conta.id))||'—')}</span>`:''}</div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-act="merc-atualizar" ${W||(c.url?'':'disabled')}>${m.busy?'Buscando…':'Atualizar do ML'}</button>${dl?`<a class="btn" href="${esc(dl)}" target="_blank" rel="noopener">Baixar dados do ML</a>`:''}<label class="btn" style="cursor:pointer">Importar arquivo baixado<input type="file" id="merc-file" accept=".json,application/json" style="display:none" ${W}></label></div>
+    ${m.msg?`<div class="alert ${m.msgCls||'info'}" style="margin-top:10px">${esc(m.msg)}</div>`:''}
+    <p class="small muted" style="margin-top:8px">O serviço coleta sozinho uma vez por dia. O botão traz o que já foi coletado hoje, ou coleta na hora se ainda não tiver.</p></div>`;
+  const passos=`<ol class="small" style="margin:8px 0 0;padding-left:18px;display:grid;gap:4px">
+    <li>Entre no Mercado Livre com a conta que vocês não usam e crie um aplicativo em <a href="https://developers.mercadolivre.com.br/devcenter" target="_blank" rel="noopener">developers.mercadolivre.com.br</a> (gratuito). Ele gera o App ID e a Secret Key.</li>
+    <li>Suba o serviço da pasta <code>worker</code> do GitHub no Cloudflare, seguindo o README dessa pasta. No aplicativo do ML, a URL de redirecionamento é <code>https://SEU-SERVICO.workers.dev/auth/callback</code>.</li>
+    <li>Cole abaixo o endereço do serviço e a chave APP_KEY que você criou no Cloudflare, e clique em Salvar.</li>
+    <li>Clique em “Conectar conta do ML” e entre com a conta que vocês não usam. Use uma janela anônima para não conectar a conta da loja por engano.</li>
+    <li>Ache a categoria dos adesivos, adicione e clique em “Atualizar do ML”.</li></ol>`;
+  const conexao=`<div class="card"><h3>Conexão com o Mercado Livre</h3>
+    <div class="form" style="margin-top:6px"><label>Endereço do serviço<input type="text" id="merc-url" value="${esc(c.url)}" placeholder="https://ml-laser-brindes.SEU-USUARIO.workers.dev"></label><label>Chave do serviço (APP_KEY)<input type="text" id="merc-key" value="${esc(c.key)}" autocomplete="off"></label>
+    <div class="row"><button class="btn primary" data-act="merc-salvar" ${W}>Salvar</button><button class="btn" data-act="merc-testar">Testar</button>${auth?`<a class="btn" href="${esc(auth)}" target="_blank" rel="noopener">Conectar conta do ML</a>`:''}</div></div>
+    ${m.status?`<div class="alert ${m.statusCls||'info'}" style="margin-top:10px">${m.status}</div>`:''}
+    <details ${c.url?'':'open'} style="margin-top:10px"><summary>Como montar (uma vez)</summary>${passos}</details>
+    <p class="small muted" style="margin-top:8px">A chave fica visível para quem pode editar este painel. Ela só deixa ler dados do ML pelo serviço; o acesso à conta e a Secret Key ficam guardados no Cloudflare.</p></div>`;
+  const cats=`<div class="card"><h3>Categorias e termos</h3><div class="grid g2" style="margin-top:6px">
+    <div><div class="row"><input type="search" id="merc-catq" placeholder="ex.: adesivo dtf uv" style="max-width:260px"><button class="btn" data-act="merc-cat-buscar">Achar categoria</button></div>
+      ${m.catRes?(m.catRes.length?`<div style="margin-top:8px;display:grid;gap:6px">${m.catRes.map(x=>`<div class="row"><span><b>${esc(x.nome)}</b> <span class="small muted">${esc(x.id)}${x.dominio?' · '+esc(x.dominio):''}</span></span><button class="btn sm" data-act="merc-cat-add" data-id="${esc(x.id)}" data-nome="${esc(x.nome)}" ${W}>Adicionar</button></div>`).join('')}</div>`:'<p class="small muted" style="margin-top:6px">Nenhuma categoria encontrada.</p>'):''}
+      <div class="row" style="margin-top:10px">${c.cats.length?c.cats.map((x,i)=>`<span class="badge info">${esc(x.nome)} · ${esc(x.id)} <button class="btn sm" data-act="merc-cat-rm" data-i="${i}" style="padding:0 6px;margin-left:4px" aria-label="Remover ${esc(x.nome)}" ${W}>×</button></span>`).join(''):'<span class="small muted">Nenhuma categoria escolhida. Sem categoria, o painel só busca os termos ao lado.</span>'}</div></div>
+    <div><label class="small" style="display:grid;gap:4px;font-weight:700;color:var(--fg2)">Termos para ver concorrentes (separados por vírgula)<textarea id="merc-termos" rows="4">${esc(c.termos)}</textarea></label><p class="small muted" style="margin-top:4px">Até 12 termos. Para cada um, o painel traz os 15 primeiros anúncios da busca do ML. Os termos são salvos ao clicar em Salvar ou Atualizar.</p></div></div></div>`;
+  return `<div class="row between"><h2>Mercado ML · concorrentes e mais vendidos</h2><span class="muted small">Dados da API oficial do Mercado Livre</span></div>
+  ${atual}${snap?mercResultados(snap):`<div class="empty">Quando a conexão estiver pronta, aqui aparecem as buscas em alta da categoria, os 20 mais vendidos com quem subiu e quem caiu, e os concorrentes de cada termo.</div>`}${conexao}${cats}`;
+}
+function mercResultados(snap){
+  const W=Store.canWrite?'':'disabled';const grupos=[['crescendo','Crescendo mais rápido'],['desejado','Mais desejadas'],['popular','Mais populares']];
+  const mov=x=>x.novo?'<span class="badge good">novo</span>':x.pos_anterior==null?'<span class="small muted">—</span>':x.pos_anterior>x.pos?`<span class="delta up">▲ ${x.pos_anterior-x.pos}</span>`:x.pos_anterior<x.pos?`<span class="delta down">▼ ${x.pos-x.pos_anterior}</span>`:'<span class="delta flat">=</span>';
+  const cats=(snap.categorias||[]).map(c=>{
+    const erros=[c.erro_categoria,c.erro_tendencias,c.erro_mais_vendidos].filter(Boolean);
+    const busc=grupos.map(([g,nome])=>{const ts=(c.tendencias||[]).filter(t=>t.grupo===g);if(!ts.length)return '';
+      return `<div style="min-width:0"><h4 style="margin-bottom:6px">${nome}</h4><div style="display:grid;gap:5px">${ts.map(t=>{const n=minhasArtes(t.keyword);
+        return `<div class="row" style="gap:6px"><a href="${esc(t.url||('https://lista.mercadolivre.com.br/'+slugML(t.keyword)))}" target="_blank" rel="noopener">${esc(t.keyword)}</a>${t.novo?'<span class="badge good">novo</span>':''}${n==null?'':n?`<span class="small muted">${n} arte(s) sua(s)</span>`:'<span class="small" style="color:var(--bad)">você não tem</span>'}<button class="btn sm" data-act="merc-tema" data-kw="${esc(t.keyword)}" title="Adicionar em Tendências" ${W}>+ tema</button></div>`;}).join('')}</div></div>`;}).join('');
+    const mv=(c.mais_vendidos||[]).length?`<div class="tbl-wrap"><table><thead><tr><th class="r">#</th><th>Mudou</th><th>Anúncio</th><th class="r">Preço</th><th>Vendedor</th><th class="r">Vendidos</th><th>Tema</th></tr></thead><tbody>
+      ${c.mais_vendidos.map(x=>`<tr><td class="r"><b>${x.pos||''}</b></td><td>${mov(x)}</td><td><a href="${esc(x.link||'#')}" target="_blank" rel="noopener">${esc(x.titulo||x.id)}</a>${x.full?' <span class="badge info">Full</span>':''}</td><td class="r">${x.preco!=null?fmtBRL(x.preco):'—'}</td><td class="small">${esc(x.vendedor||'—')}</td><td class="r">${x.vendidos!=null?fmtN(x.vendidos):'—'}</td><td class="small">${esc(temaDe(x.titulo||'')||'—')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="small muted">O ML não devolveu mais vendidos para esta categoria.</p>';
+    return `<div class="card"><div class="row between"><h3>${esc(c.nome)}</h3><span class="small muted">${esc(c.caminho||c.id)}${c.comparado_com?' · comparado com '+fmtD(c.comparado_com):' · primeira coleta, ainda sem comparação'}${c.sairam?` · ${c.sairam} saíram do top`:''}</span></div>
+      ${erros.length?`<div class="alert bad" style="margin:8px 0">${erros.map(esc).join('<br>')}</div>`:''}
+      ${busc?`<h4 style="margin:12px 0 8px">Buscas em alta na categoria</h4><div class="grid g3">${busc}</div>`:''}
+      <h4 style="margin:18px 0 8px">Mais vendidos da categoria</h4>${mv}</div>`;}).join('');
+  const buscas=(snap.buscas||[]).length?`<div class="card"><h3>Concorrentes por termo</h3>${snap.buscas.map(b=>`<details style="margin-top:8px"><summary>${esc(b.termo)}${b.total?` <span class="small muted">· ${fmtN(b.total)} anúncios no ML</span>`:''}</summary>
+    ${b.erro?`<div class="alert bad" style="margin-top:6px">${esc(b.erro)}</div>`:`<div class="tbl-wrap" style="margin-top:6px"><table><thead><tr><th>Anúncio</th><th class="r">Preço</th><th>Vendedor</th><th class="r">Vendidos</th><th>Entrega</th></tr></thead><tbody>${(b.itens||[]).map(x=>`<tr><td><a href="${esc(x.link||'#')}" target="_blank" rel="noopener">${esc(x.titulo)}</a></td><td class="r">${x.preco!=null?fmtBRL(x.preco):'—'}</td><td class="small">${esc(x.vendedor||'—')}</td><td class="r">${x.vendidos!=null?fmtN(x.vendidos):'—'}</td><td class="small">${x.full?'<span class="badge info">Full</span> ':''}${x.frete_gratis?'frete grátis':''}</td></tr>`).join('')}</tbody></table></div>`}</details>`).join('')}</div>`:'';
+  return cats+buscas;
+}
+
 function folhaOverhead(){
   const r=state.rateio&&state.rateio.unidades?state.rateio:null;if(!r)return '';
   const linhas=[];Object.keys(r.meses||{}).sort().reverse().slice(0,3).forEach(ym=>{const R=calcRateio(r,ym);if(!R)return;r.unidades.forEach(u=>{const f=+((r.meses[ym].folhas||{})[u.id])||0;if(f>0)linhas.push({ym,u,f,v:R.tot[u.id]/f});});});
@@ -1640,6 +1703,15 @@ function bindCommon(){
     else if(act==='anu-limpar'){await Store.put('config','anunciosML',{itens:[],em:null});}
     else if(act==='tend-add'){await Store.put('config','tendencias',{itens:tendCfg().concat([{id:uid('t'),nome:'Novo tema',palavras:'',nivel:'medio',fonte:'',em:new Date().toISOString().slice(0,10)}])});}
     else if(act==='tend-rm'){await Store.put('config','tendencias',{itens:tendCfg().filter((x,i)=>i!==+el.dataset.i)});}
+    else if(act==='merc-salvar'){const c=mercCfg();await Store.put('config','mercadoCfg',{url:document.getElementById('merc-url').value.trim().replace(/\/+$/,''),key:document.getElementById('merc-key').value.trim(),cats:c.cats,termos:document.getElementById('merc-termos').value});toast('Conexão salva');}
+    else if(act==='merc-testar'){const m=ui.merc||(ui.merc={});try{const j=await mercFetch('/api/status');m.statusCls=j.conectado?'good':'';m.status=j.conectado?`Serviço funcionando. Conta do ML conectada: <b>${esc((j.conta&&(j.conta.nickname||j.conta.id))||'')}</b>.`:'O serviço está funcionando, mas nenhuma conta do ML foi conectada ainda. Clique em “Conectar conta do ML”.';}catch(e){m.statusCls=e.bloqueado?'':'bad';m.status=esc(e.bloqueado?MSG_BLOQ:e.message);}render();}
+    else if(act==='merc-cat-buscar'){const m=ui.merc||(ui.merc={});const q=document.getElementById('merc-catq').value.trim();if(!q)return;try{m.catRes=await mercFetch('/api/categorias',{q});}catch(e){m.catRes=null;m.statusCls=e.bloqueado?'':'bad';m.status=esc(e.bloqueado?MSG_BLOQ:e.message);}render();}
+    else if(act==='merc-cat-add'){const c=mercCfg();if(!c.cats.some(x=>x.id===el.dataset.id))c.cats.push({id:el.dataset.id,nome:el.dataset.nome});await Store.put('config','mercadoCfg',{url:c.url,key:c.key,cats:c.cats,termos:c.termos});toast('Categoria adicionada');}
+    else if(act==='merc-cat-rm'){const c=mercCfg();c.cats.splice(+el.dataset.i,1);await Store.put('config','mercadoCfg',{url:c.url,key:c.key,cats:c.cats,termos:c.termos});}
+    else if(act==='merc-tema'){const kw=el.dataset.kw;await Store.put('config','tendencias',{itens:tendCfg().concat([{id:uid('t'),nome:kw,palavras:kw,nivel:'alto',fonte:'Buscas em alta do ML',em:new Date().toISOString().slice(0,10)}])});toast('Adicionado em Tendências: '+kw);}
+    else if(act==='merc-atualizar'){const m=ui.merc||(ui.merc={});const c=mercCfg();const termos=document.getElementById('merc-termos').value;m.busy=true;m.msg='';render();
+      try{if(termos!==c.termos)await Store.put('config','mercadoCfg',{url:c.url,key:c.key,cats:c.cats,termos});const snap=await mercFetch('/api/mercado',mercParams(termos));await mercSalvarSnap(snap);m.msg='Dados do Mercado Livre atualizados.';m.msgCls='good';}
+      catch(e){m.msg=e.bloqueado?MSG_BLOQ:e.message;m.msgCls=e.bloqueado?'':'bad';}m.busy=false;render();}
   };
   app.oninput=ev=>{const id=ev.target.id;
     if(id.startsWith('vf-')){const k=id.slice(3);ui.vf[k]=ev.target.value;ui.vf.lim=100;if(k==='q')debounce(render);else render();}
@@ -1653,6 +1725,7 @@ function bindCommon(){
     else if(id==='rateio-sel'){if(ev.target.value){ui.rateioMes=ev.target.value;ui.rateioMesUser=true;render();}}
   };
   app.onchange=async ev=>{const t=ev.target;if(t.id==='file')handleFiles([...t.files]);if(t.id==='restore')restore(t.files[0]);
+    if(t.id==='merc-file'){const m=ui.merc||(ui.merc={});try{await mercSalvarSnap(JSON.parse(await t.files[0].text()));m.msg='Arquivo do ML importado.';m.msgCls='good';}catch(e){m.msg='Não consegui importar: '+e.message;m.msgCls='bad';}t.value='';render();return;}
     if(t.id==='cat-file'||t.id==='anu-file'){await importLista(t.files[0],t.id==='cat-file'?'catalogo':'anunciosML');t.value='';return;}
     if(t.dataset.cp){const c=comCfg();const ps=JSON.parse(JSON.stringify(c.pessoas));setPath(ps,t.dataset.cp,inputVal(t));try{await Store.put('config','comissao',{pessoas:ps,pagos:c.pagos});}catch(e){}return;}
     if(t.dataset.tr){const l=JSON.parse(JSON.stringify(tendCfg()));setPath(l,t.dataset.tr,t.value);try{await Store.put('config','tendencias',{itens:l});}catch(e){}return;}

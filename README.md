@@ -7,6 +7,8 @@ Painel para fechamento do Mercado Livre: importa o relatório de **Vendas** e o 
 - **Ads**: ACOS de cada anúncio comparado ao limite do SKU; veredito de "compensa", "no limite", "não compensa", "fraco" ou "pouca exposição".
 - **Gastos**: lançamentos editáveis com **alerta de gasto repetido** (mesmo valor/período, mesma descrição, dois Ads sobrepostos).
 - **Fechamentos**: valores a receber por período (data de liberação), gastos rateados por dia, recebido e "faltam".
+- **Folha impressa**: base de custo do filme A, filme B (laminação), tintas (preço, ml, consumo por m²) e outros insumos; custo por cm², m², metro linear, por tamanho de folha (29×21, 29×42, 29×50, 29×100, 40×72 ou personalizada) e por peça.
+- **Rateio mensal**: custos do mês (energia, imposto, Ads, etc.) divididos entre unidades em partes iguais, por percentual ou valor direto; material gasto no mês (filme e tinta) atribuído à unidade que imprime; resultado por mês, semana, dia e por folha; opção de incluir ou não uma unidade na divisão; botão para lançar a parte de cada unidade em Gastos.
 - **Full**: regra a regra, se vale enviar o anúncio ao Mercado Envios Full; compara SKUs FULL × SEMFULL.
 - **Regras e cálculo**: todos os limites são editáveis.
 

@@ -390,6 +390,22 @@ function unitOf(o,prods){
   return 'canecas';
 }
 const UNID_NOME={todos:'Ambos',dtf:'DTF UV',canecas:'Canecas'};
+const TAM_PADRAO=[{l:29,a:21,p:39},{l:29,a:42,p:49.9},{l:29,a:50,p:65.9},{l:29,a:100,p:99}];
+function filmeCm2(f){if(!f||!+f.preco)return 0;if(f.modo==='folhas'){const area=(+f.qtd||0)*(+f.l||0)*(+f.a||0);return area?+f.preco/area:0;}const area=(+f.larguraCm||0)*(+f.comprimentoCm||0);return area?+f.preco/area:0;}
+function folhaCm2Total(c){if(!c||!c.filmeA)return 0;let t=filmeCm2(c.filmeA);if(c.filmeB&&c.filmeB.ativo)t+=filmeCm2(c.filmeB);(c.tintas||[]).forEach(x=>{if(+x.preco&&+x.ml)t+=(+x.preco/+x.ml)*(+x.consumo||0)/10000;});(c.outros||[]).forEach(o=>{t+=(+o.valor||0)/10000;});return t*(1+(+c.perdaPct||0)/100);}
+function tiersFolha(c){const out=[];((c&&c.tamanhos)||[]).forEach(t=>{const l=+t.l,a=+t.a;if(!l||!a)return;let p=+t.precoCheio;if(!p){const d=TAM_PADRAO.find(x=>x.l===l&&x.a===a);p=d?d.p:0;}out.push({key:l+'x'+a,nome:t.nome||(l+' × '+a),l,a,p});});if(!out.length)TAM_PADRAO.forEach(d=>out.push({key:d.l+'x'+d.a,nome:d.l+' × '+d.a,l:d.l,a:d.a,p:d.p}));return out;}
+function suggestTam(st,tiers,tit){
+  const m=String(tit||'').match(/(\d{2,3})\s*x\s*(\d{2,3})\s*cm/i);
+  if(m){const a=+m[1],b=+m[2];const t=tiers.find(x=>(x.l===a&&x.a===b)||(x.l===b&&x.a===a));if(t)return{key:t.key,conf:'título'};}
+  const cand=tiers.filter(t=>t.p>0);if(!cand.length||!st||!st.n)return null;
+  let best=null;
+  cand.forEach(t=>{const d=Math.abs(st.max-t.p)/t.p;if(d<=0.055&&(!best||d<best.d))best={t,d};});
+  if(best)return{key:best.t.key,conf:'preço cheio'};
+  const implied=Math.max(st.max,st.med/0.63);const small=Math.min(...cand.map(t=>t.p));
+  if(implied<small*0.85)return{key:'menor',conf:'estimado'};
+  cand.forEach(t=>{const d=Math.abs(implied-t.p)/t.p;if(!best||d<best.d)best={t,d};});
+  return{key:best.t.key,conf:best.d<0.12?'estimado':'incerto'};
+}
 function analyze(state,unit){
   unit=unit||'todos';
   const cfg=Object.assign({},DEFAULT_CFG,state.config||{});
@@ -446,10 +462,20 @@ function analyze(state,unit){
   // custos fixos rateados por venda
   const fixos=custos.filter(c=>c.tipo!=='Ads'&&c.tipo!=='Produto'&&c.ini&&c.fim&&c.valor);
   fixos.forEach(c=>{c.nVendas=eff.filter(r=>!r.cancel&&r.d>=c.ini&&r.d<=c.fim).length;});
+  // tamanho da folha por SKU (preço cheio, título ou escolha manual) e custo vindo da aba Folha impressa
+  const fo=state.folha&&state.folha.filmeA?state.folha:(typeof DEFAULT_FOLHA!=='undefined'?DEFAULT_FOLHA:null);
+  const tiers=tiersFolha(fo),cm2Folha=folhaCm2Total(fo);
+  const pstat={};eff.forEach(r=>{if(r.cancel||r.rateado||!(r.un>0)||!(r.eff.rp>0))return;const o=pstat[r.sku]||(pstat[r.sku]={ps:[],tit:r.tit});o.ps.push(r.eff.rp/r.un);});
+  Object.values(pstat).forEach(o=>{o.ps.sort((a,b)=>a-b);o.n=o.ps.length;o.max=o.ps[o.n-1];o.med=o.ps[Math.floor(o.n/2)];});
+  const tamCache={};
+  function tamOf(sku){if(tamCache[sku])return tamCache[sku];const p=prods[pidOf(sku)]||{};const st=pstat[sku];const sug=suggestTam(st,tiers,st&&st.tit);
+    let key=null,origem=null;if(p.tam){key=p.tam;origem='manual';}else if(sug){key=sug.key;origem=sug.conf;}
+    const t=tiers.find(x=>x.key===key);const folhas=+p.folhas||1;
+    return tamCache[sku]={key,origem,tier:t||null,sugerido:sug?sug.key:null,folhas,custoFolha:t&&cm2Folha?t.l*t.a*cm2Folha*folhas:null};}
   // custo por linha
   eff.forEach(r=>{
     const p=prods[pidOf(r.sku)]||{};
-    r.custoUnit=p.custo!=null&&p.custo!==''?+p.custo:null;
+    const manual=p.custo!=null&&p.custo!=='';const tf=!manual&&r.unit==='dtf'?tamOf(r.sku).custoFolha:null;r.custoUnit=manual?+p.custo:(tf||null);r.custoOrigem=manual?'manual':(tf?'folha':null);
     r.custoProd=r.custoUnit!=null?r.custoUnit*r.un:(cfg.custoPadraoPct?r.eff.rp*cfg.custoPadraoPct/100:0);
     r.custoEstimado=r.custoUnit==null;
     r.emb=r.cancel?0:(p.emb!=null&&p.emb!==''?+p.emb:+cfg.embalagemPadrao||0);
@@ -473,7 +499,7 @@ function analyze(state,unit){
   const skuList=Object.values(skus);
   skuList.forEach(s=>{
     const p=prods[s.pid]||{};s.prod=p;
-    s.tit=Object.keys(s.tits).sort((a,b)=>s.tits[b]-s.tits[a])[0]||'';s.unit=unitOf({sku:s.sku,tit:s.tit},prods);
+    s.tit=Object.keys(s.tits).sort((a,b)=>s.tits[b]-s.tits[a])[0]||'';s.unit=unitOf({sku:s.sku,tit:s.tit},prods);{const ps0=pstat[s.sku];s.pmed=ps0?ps0.med:null;s.pmax=ps0?ps0.max:null;s.tam=tamOf(s.sku);}
     s.nTotal=s.n+s.nCancel;s.cancelPct=s.nTotal?s.nCancel/s.nTotal*100:0;
     s.ticket=s.n?s.rp/s.n:0;s.precoMed=s.un?s.rp/s.un:(medPrice[s.sku]||0);
     s.margem=s.rp?s.lucro/s.rp*100:0;s.pubPct=s.n?s.nPub/s.n*100:0;
@@ -529,7 +555,7 @@ function analyze(state,unit){
   adsT.acos=adsT.rec?adsT.inv/adsT.rec*100:null;adsT.roas=adsT.inv?adsT.rec/adsT.inv:null;
   const semCusto=skuList.filter(s=>s.custoEstimado&&s.n>0);
   const abaixoCusto=skuList.filter(s=>s.abaixoCusto),margemBaixa=skuList.filter(s=>s.margemBaixa);
-  return{unit,custosAll,cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,abaixoCusto,margemBaixa,adsPerSale,pubCountBy,adsInvBy,medPrice};
+  return{tiers,cm2Folha,unit,custosAll,cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,abaixoCusto,margemBaixa,adsPerSale,pubCountBy,adsInvBy,medPrice};
 }
 function adsVerdict(m,limite,cfg){
   const notes=[];
@@ -1012,6 +1038,7 @@ function skuDetail(s){
       <label>Custo unitário (R$)<input type="number" step="0.01" min="0" id="pc-custo-${s.pid}" value="${p.custo!=null?p.custo:''}" placeholder="ex.: 8,50"></label>
       <label>Embalagem por venda (R$)<input type="number" step="0.01" min="0" id="pc-emb-${s.pid}" value="${p.emb!=null?p.emb:''}" placeholder="padrão ${A.cfg.embalagemPadrao}"></label>
       <label>Códigos MLB (vírgula)<input type="text" id="pc-mlbs-${s.pid}" value="${esc((p.mlbs||[]).join(', '))}" placeholder="MLB123…"></label>
+      ${s.unit==='dtf'?`<label>Tamanho da folha<select id="pc-tam-${s.pid}"><option value="">Auto (${esc(s.tam.sugerido||'—')})</option>${A.tiers.map(t=>`<option value="${t.key}" ${p.tam===t.key?'selected':''}>${esc(t.nome)}</option>`).join('')}<option value="menor" ${p.tam==='menor'?'selected':''}>Menor que 29 × 21</option></select></label><label>Folhas por venda<input type="number" step="0.5" min="0" id="pc-fol-${s.pid}" value="${p.folhas||''}" placeholder="1"></label>`:''}
       <label>Unidade<select id="pc-un-${s.pid}"><option value="">Automática (${UNID_NOME[unitOf({sku:s.sku,tit:s.tit},{})]})</option><option value="dtf" ${p.un==='dtf'?'selected':''}>DTF UV</option><option value="canecas" ${p.un==='canecas'?'selected':''}>Canecas</option></select></label>
       <label>Observação<input type="text" id="pc-obs-${s.pid}" value="${esc(p.obs||'')}"></label>
       <button class="btn primary" data-act="save-prod" data-pid="${s.pid}" data-sku="${esc(s.sku)}" ${Store.canWrite?'':'disabled'}>Salvar</button>
@@ -1184,11 +1211,10 @@ const DEFAULT_FOLHA={
   filmeB:{nome:'Filme B (laminação)',ativo:true,modo:'rolo',preco:0,larguraCm:30,comprimentoCm:10000,qtd:0,l:29,a:42},
   tintas:[{nome:'Tinta colorida (CMYK)',preco:0,ml:1000,consumo:10},{nome:'Tinta branca',preco:0,ml:1000,consumo:8},{nome:'Verniz',preco:0,ml:1000,consumo:6}],
   outros:[],perdaPct:5,
-  tamanhos:[{nome:'29 × 21',l:29,a:21},{nome:'29 × 42',l:29,a:42},{nome:'29 × 50',l:29,a:50},{nome:'29 × 100',l:29,a:100},{nome:'40 × 72',l:40,a:72}],
+  tamanhos:[{nome:'29 × 21',l:29,a:21,precoCheio:39},{nome:'29 × 42',l:29,a:42,precoCheio:49.9},{nome:'29 × 50',l:29,a:50,precoCheio:65.9},{nome:'29 × 100',l:29,a:100,precoCheio:99},{nome:'40 × 72',l:40,a:72}],
   custom:{l:29,a:30},peca:{l:5,a:5,folha:1},
 };
 function folhaCfg(){if(!ui.folhaDraft){const s=state.folha&&state.folha.filmeA?state.folha:DEFAULT_FOLHA;ui.folhaDraft=JSON.parse(JSON.stringify(s));}return ui.folhaDraft;}
-function filmeCm2(f){if(!f||!+f.preco)return 0;if(f.modo==='folhas'){const area=(+f.qtd||0)*(+f.l||0)*(+f.a||0);return area?+f.preco/area:0;}const area=(+f.larguraCm||0)*(+f.comprimentoCm||0);return area?+f.preco/area:0;}
 function calcFolha(c){
   const linhas=[];
   linhas.push({nome:c.filmeA.nome||'Filme A',cm2:filmeCm2(c.filmeA),det:c.filmeA.modo==='folhas'?`${fmtBRL(+c.filmeA.preco)} ÷ (${c.filmeA.qtd} folhas × ${c.filmeA.l} × ${c.filmeA.a} cm)`:`${fmtBRL(+c.filmeA.preco)} ÷ (${c.filmeA.larguraCm} × ${c.filmeA.comprimentoCm} cm)`});
@@ -1233,7 +1259,7 @@ function vFolha(){
       </div></div>
       <div class="card"><h3>Custo por tamanho de folha</h3>
         <div class="tbl-wrap"><table><thead><tr><th>Folha</th><th class="r">cm²</th><th class="r">Custo da folha</th><th class="r">Peças ${c.peca.l}×${c.peca.a}</th><th class="r">R$/peça</th><th></th></tr></thead><tbody>
-        ${c.tamanhos.map((t,i)=>{const area=(+t.l||0)*(+t.a||0);const n=pecasPorFolha(+t.l,+t.a,+c.peca.l,+c.peca.a);return `<tr><td style="white-space:nowrap"><input type="text" data-f="tamanhos.${i}.nome" value="${esc(t.nome)}" style="width:100px;padding:4px 6px"> <input type="number" step="0.1" data-f="tamanhos.${i}.l" value="${t.l}" style="width:60px;padding:4px 6px"> × <input type="number" step="0.1" data-f="tamanhos.${i}.a" value="${t.a}" style="width:60px;padding:4px 6px"> cm</td><td class="r">${fmtN(area)}</td><td class="r"><b>${fmtBRL(area*R.total)}</b></td><td class="r">${n}</td><td class="r">${n?fmtBRL(area*R.total/n):'—'}</td><td><button class="btn sm danger" data-act="rm-folha" data-list="tamanhos" data-i="${i}">×</button></td></tr>`;}).join('')}
+        ${c.tamanhos.map((t,i)=>{const area=(+t.l||0)*(+t.a||0);const n=pecasPorFolha(+t.l,+t.a,+c.peca.l,+c.peca.a);return `<tr><td style="white-space:nowrap"><input type="text" data-f="tamanhos.${i}.nome" value="${esc(t.nome)}" style="width:100px;padding:4px 6px"> <input type="number" step="0.1" data-f="tamanhos.${i}.l" value="${t.l}" style="width:60px;padding:4px 6px"> × <input type="number" step="0.1" data-f="tamanhos.${i}.a" value="${t.a}" style="width:60px;padding:4px 6px"> cm <span class="small muted">cheio R$</span> <input type="number" step="0.01" min="0" data-f="tamanhos.${i}.precoCheio" value="${t.precoCheio!=null?t.precoCheio:((TAM_PADRAO.find(x=>x.l===+t.l&&x.a===+t.a)||{}).p||'')}" title="Preço cheio da folha no Mercado Livre" style="width:72px;padding:4px 6px"></td><td class="r">${fmtN(area)}</td><td class="r"><b>${fmtBRL(area*R.total)}</b></td><td class="r">${n}</td><td class="r">${n?fmtBRL(area*R.total/n):'—'}</td><td><button class="btn sm danger" data-act="rm-folha" data-list="tamanhos" data-i="${i}">×</button></td></tr>`;}).join('')}
         <tr><td style="white-space:nowrap"><b>Personalizada</b> <input type="number" step="0.1" data-f="custom.l" value="${c.custom.l}" style="width:60px;padding:4px 6px"> × <input type="number" step="0.1" data-f="custom.a" value="${c.custom.a}" style="width:60px;padding:4px 6px"> cm</td><td class="r">${fmtN((+c.custom.l||0)*(+c.custom.a||0))}</td><td class="r"><b>${fmtBRL((+c.custom.l||0)*(+c.custom.a||0)*R.total)}</b></td><td class="r">${pecasPorFolha(+c.custom.l,+c.custom.a,+c.peca.l,+c.peca.a)}</td><td class="r">${pecasPorFolha(+c.custom.l,+c.custom.a,+c.peca.l,+c.peca.a)?fmtBRL((+c.custom.l||0)*(+c.custom.a||0)*R.total/pecasPorFolha(+c.custom.l,+c.custom.a,+c.peca.l,+c.peca.a)):'—'}</td><td></td></tr>
         </tbody></table></div>
         <div class="row" style="margin-top:8px"><button class="btn sm" data-act="add-folha" data-list="tamanhos">+ Tamanho</button></div>
@@ -1241,7 +1267,25 @@ function vFolha(){
       </div>
       ${folhaOverhead()}
     </div>
-  </div>`;
+  </div>
+  ${folhaSkus()}`;
+}
+const ORIGEM_TXT={manual:'escolhido',título:'pelo título','preço cheio':'pelo preço cheio',estimado:'pelo preço (estimado)',incerto:'incerto'};
+function folhaSkus(){
+  const list=A.skuList.filter(s=>s.unit==='dtf'&&s.tam);
+  const head=`<h3>SKUs de DTF UV por tamanho de folha</h3>`;
+  if(!list.length)return `<div class="card">${head}<p class="muted small">${ui.unidade==='canecas'?'Você está no filtro Canecas. Escolha Ambos ou DTF UV no topo.':'Importe as vendas para ver os SKUs.'}</p></div>`;
+  const nome=k=>k==='menor'?'Menor que 29 × 21':k==='sem'?'Sem tamanho definido':(A.tiers.find(t=>t.key===k)||{nome:k}).nome;
+  const groups={};list.forEach(s=>{const k=s.tam.key||'sem';(groups[k]=groups[k]||[]).push(s);});
+  const order=A.tiers.map(t=>t.key).concat(['menor','sem']);
+  const opts=s=>`<option value="">Auto (${esc(s.tam.sugerido?nome(s.tam.sugerido):'—')})</option>${A.tiers.map(t=>`<option value="${t.key}" ${s.prod.tam===t.key?'selected':''}>${esc(t.nome)}</option>`).join('')}<option value="menor" ${s.prod.tam==='menor'?'selected':''}>Menor que 29 × 21</option>`;
+  return `<div class="card">${head}<p class="small muted" style="margin:4px 0 10px">O tamanho é sugerido pelo preço cheio de cada folha (tabela acima) e pelas medidas escritas no título. Corrija no seletor e a escolha fica salva. O custo da unidade passa a ser o custo da folha × folhas por venda, a menos que você cadastre um custo à mão em Anúncios.</p>
+  ${order.filter(k=>groups[k]).map(k=>{const g=groups[k].sort((a,b)=>b.rp-a.rp);const t=A.tiers.find(x=>x.key===k);const custo=t&&A.cm2Folha?t.l*t.a*A.cm2Folha:null;
+    return `<div style="margin-top:12px"><div class="row between"><h4>${esc(nome(k))}${t&&t.p?` · cheio R$ ${t.p.toLocaleString('pt-BR',{minimumFractionDigits:2})}`:''}</h4><span class="small muted">${g.length} SKUs · ${fmtBRL(g.reduce((a,x)=>a+x.rp,0))} de receita${custo?` · custo da folha ${fmtBRL(custo)}`:t?' · preencha os preços acima para ver o custo':''}</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>SKU</th><th class="r">Un</th><th class="r">Preço vendido (mediana / máx.)</th><th>Como foi definido</th><th>Tamanho</th><th class="r">Folhas/venda</th><th class="r">Custo/un</th></tr></thead><tbody>
+    ${g.map(s=>`<tr><td><span class="sku">${esc(s.sku)}</span><span class="t small muted" title="${esc(s.tit)}">${esc(s.tit)}</span></td><td class="r">${s.un}</td><td class="r">${s.pmed!=null?fmtBRL(s.pmed)+' / '+fmtBRL(s.pmax):'—'}</td><td class="small">${s.tam.origem?`<span class="badge ${s.tam.origem==='incerto'?'warn':s.tam.origem==='manual'?'info':''}">${ORIGEM_TXT[s.tam.origem]}</span>`:'—'}</td>
+    <td><select data-tamsku="${esc(s.sku)}" style="padding:4px 6px">${opts(s)}</select></td><td class="r"><input type="number" step="0.5" min="0" data-folsku="${esc(s.sku)}" value="${s.prod.folhas||''}" placeholder="1" style="width:64px;text-align:right;padding:4px 6px"></td>
+    <td class="r">${s.tam.custoFolha?fmtBRL(s.tam.custoFolha):'—'}</td></tr>`).join('')}</tbody></table></div></div>`;}).join('')}</div>`;
 }
 function folhaOverhead(){
   const r=state.rateio&&state.rateio.unidades?state.rateio:null;if(!r)return '';
@@ -1339,7 +1383,7 @@ function bindCommon(){
     else if(act==='wipe'){const c=document.getElementById('wipe-confirm');c.innerHTML='<button class="btn danger sm" data-act="wipe-yes">Sim, apagar tudo</button>';}
     else if(act==='wipe-yes')await wipeAll();
     else if(act==='save-prod'){const pid=el.dataset.pid,sku=el.dataset.sku;const g=k=>document.getElementById(`pc-${k}-${pid}`).value;
-      const d={sku,custo:g('custo')===''?null:+g('custo'),emb:g('emb')===''?null:+g('emb'),mlbs:g('mlbs').split(',').map(s=>s.trim()).filter(Boolean),obs:g('obs'),un:document.getElementById('pc-un-'+pid).value||null};
+      const d={sku,custo:g('custo')===''?null:+g('custo'),emb:g('emb')===''?null:+g('emb'),mlbs:g('mlbs').split(',').map(s=>s.trim()).filter(Boolean),obs:g('obs'),un:document.getElementById('pc-un-'+pid).value||null,tam:(document.getElementById('pc-tam-'+pid)||{}).value||null,folhas:(document.getElementById('pc-fol-'+pid)||{}).value?+document.getElementById('pc-fol-'+pid).value:null};
       await Store.put('produtos',pid,d);toast('Custos de '+sku+' salvos');}
     else if(act==='map-sku'){const mlb=el.dataset.mlb;const sku=document.getElementById('map-'+mlb).value;const m=Object.assign({},state.mapeamento);if(sku)m[mlb]=sku;else delete m[mlb];await Store.put('config','mapeamento',m);toast('Vínculo salvo');}
     else if(act==='unmap-sku'){const m=Object.assign({},state.mapeamento);delete m[el.dataset.mlb];await Store.put('config','mapeamento',m);}
@@ -1380,7 +1424,11 @@ function bindCommon(){
     else if(id==='rateio-mes'){if(/^\d{4}-\d{2}$/.test(ev.target.value)){ui.rateioMes=ev.target.value;ui.rateioMesUser=true;debounce(render);}}
     else if(id==='rateio-sel'){if(ev.target.value){ui.rateioMes=ev.target.value;ui.rateioMesUser=true;render();}}
   };
-  app.onchange=ev=>{if(ev.target.id==='file')handleFiles([...ev.target.files]);if(ev.target.id==='restore')restore(ev.target.files[0]);};
+  app.onchange=async ev=>{const t=ev.target;if(t.id==='file')handleFiles([...t.files]);if(t.id==='restore')restore(t.files[0]);
+    const sku=t.dataset.tamsku||t.dataset.folsku;
+    if(sku){const pid=pidOf(sku);const d=Object.assign({},state.produtos[pid]||{});delete d.id;d.sku=sku;
+      if(t.dataset.tamsku)d.tam=t.value||null;else d.folhas=t.value===''?null:+t.value;
+      try{await Store.put('produtos',pid,d);toast('Salvo: '+sku);}catch(e){}}};
   const drop=document.getElementById('drop');
   if(drop){drop.onclick=e=>{if(e.target.tagName!=='INPUT')document.getElementById('file').click();};
     drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};drop.ondragleave=()=>drop.classList.remove('over');

@@ -1,3 +1,18 @@
+<!-- tela de senha -->
+<style id="trava-css">body>*:not(#trava){display:none!important}</style>
+<script>
+(function(){var S="9818096d71055422",H="579cc107c6d5594f879bad391e7cbe2ed0f21b761e07e598254193d0da32cb08",K="painel_ml_ok";
+async function hx(t){var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(S+t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("")}
+function abrir(){var c=document.getElementById("trava-css");if(c)c.remove();var t=document.getElementById("trava");if(t)t.remove()}
+if(localStorage.getItem(K)===H)return;
+document.addEventListener("DOMContentLoaded",function(){if(localStorage.getItem(K)===H)return;
+var d=document.createElement("div");d.id="trava";d.style.cssText="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#111;z-index:99999;font-family:sans-serif";
+d.innerHTML='<form style="background:#222;padding:24px;border-radius:12px;color:#eee;display:flex;flex-direction:column;gap:10px;min-width:260px"><b>Painel ML Laser Brindes</b><input type="password" placeholder="Senha" autofocus style="padding:10px;border-radius:8px;border:0"><button style="padding:10px;border-radius:8px;border:0;background:#ffe600;font-weight:bold">Entrar</button><small id="trava-erro" style="color:#f77"></small></form>';
+document.body.prepend(d);
+d.querySelector("form").onsubmit=async function(e){e.preventDefault();var v=d.querySelector("input").value;
+if(await hx(v)===H){localStorage.setItem(K,H);abrir()}else{document.getElementById("trava-erro").textContent="Senha errada"}};});
+})();
+</script>
 <title>Painel ML Laser Brindes</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap">

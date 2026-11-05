@@ -2,6 +2,7 @@
 
 Painel para fechamento do Mercado Livre: importa o relatório de **Vendas** e o relatório de **Anúncios patrocinados (Ads)** exportados do ML e mostra, de forma organizada:
 
+- **Seletor no topo: Ambos / DTF UV / Canecas.** Filtra o painel inteiro (resumo, vendas, anúncios, Ads, gastos, fechamentos, Full). A unidade de cada produto é detectada pelo título e pode ser corrigida em Anúncios; cada gasto tem campo de unidade (geral entra pela metade em cada unidade).
 - **Resumo** (primeira tela): frases com semáforo verde/amarelo/vermelho (vendas, lucro, Ads, Full, a receber, gastos repetidos, margem), meta do mês com ritmo projetado, comparação com o mês anterior em cada número, três gráficos (vendas por semana, lucro acumulado × mês anterior, para onde vai cada R$ 100) e os 5 melhores / 5 que precisam de ação com frase de ação. Botão **Modo apresentação** esconde abas e filtros e aumenta a fonte.
 - **Vendas**, uma a uma, com o cálculo passo a passo (receita, tarifas, envio, bônus, reembolsos = Total ML; menos custo do produto, embalagem, Ads e rateio de fixos = lucro).
 - **Anúncios por SKU**: vendas, unidades, lucro, margem, giro em 30 dias, % de vendas via Ads e cancelamentos. Cadastro de custo unitário, embalagem e códigos MLB, um a um ou em lote (tabela ou lista colada `SKU;custo;embalagem`). Alerta de produto vendendo abaixo do custo + tarifas e de margem baixa.

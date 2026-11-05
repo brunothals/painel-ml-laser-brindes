@@ -56,6 +56,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .hdr-in{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-block:10px}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--ml);box-shadow:0 0 0 3px var(--ml-soft)}
+.seg{display:inline-flex;background:var(--surface2);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 13px;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;color:var(--fg2)}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
 .status{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--fg2);background:var(--surface2);padding:3px 10px;border-radius:999px}
 .status i{width:8px;height:8px;border-radius:50%;background:var(--mute);display:inline-block}
 .status.ok i{background:var(--good)} .status.local i{background:var(--warn)}
@@ -180,6 +183,7 @@ body.apres .topcard .big{font-size:1.5rem}
 <header class="hdr">
   <div class="hdr-in">
     <div class="brand"><span class="dot"></span><h1>Painel ML · Laser Brindes</h1></div>
+    <div class="seg" id="seg" role="group" aria-label="Unidade"><button data-u="todos">Ambos</button><button data-u="dtf">DTF UV</button><button data-u="canecas">Canecas</button></div>
     <span id="sync" class="status"><i></i><span>Conectando…</span></span>
     <nav class="tabs" id="tabs">
       <a href="#resumo" data-v="resumo">Resumo</a>
@@ -378,11 +382,21 @@ function windowOf(d){const ym=d.slice(0,7),day=+d.slice(8,10);let seg,ini,fim;co
   if(day<=7){seg=1;ini=1;fim=7;}else if(day<=14){seg=2;ini=8;fim=14;}else if(day<=21){seg=3;ini=15;fim=21;}else{seg=4;ini=22;fim=me;}
   return{key:ym+'-'+seg,ini:ym+'-'+pad(ini),fim:ym+'-'+pad(fim),label:pad(ini)+'/'+ym.slice(5,7)+' a '+pad(fim)+'/'+ym.slice(5,7)};}
 
-function analyze(state){
+function unitOf(o,prods){
+  const p=(prods||{})[pidOf(o.sku)];if(p&&(p.un==='dtf'||p.un==='canecas'))return p.un;
+  const t=norm(o.tit||'');
+  if(/^(kit )?(caneca|xicara)/.test(t))return 'canecas';
+  if(/adesiv|dtf|cartela|decalque/.test(t))return 'dtf';
+  return 'canecas';
+}
+const UNID_NOME={todos:'Ambos',dtf:'DTF UV',canecas:'Canecas'};
+function analyze(state,unit){
+  unit=unit||'todos';
   const cfg=Object.assign({},DEFAULT_CFG,state.config||{});
   const prods=state.produtos||{};const map=state.mapeamento||{};
-  const custos=Object.values(state.custos||{}).map(c=>Object.assign({},c));
-  const rows=Object.values(state.vendas||{}).map(r=>Object.assign({},r));
+  const custosAll=Object.values(state.custos||{}).map(c=>Object.assign({},c));
+  const custos=unit==='todos'?custosAll:custosAll.filter(c=>c.unidade===unit||!c.unidade||c.unidade==='geral').map(c=>(!c.unidade||c.unidade==='geral')?Object.assign({},c,{valor:(+c.valor||0)*0.5,dividido:true}):Object.assign({},c));
+  let rows=Object.values(state.vendas||{}).map(r=>Object.assign({},r));
   rows.sort((a,b)=>(b.dt||'')<(a.dt||'')?-1:(b.dt||'')>(a.dt||'')?1:0);
   const byId={};rows.forEach(r=>{byId[r.id]=r;r.d=(r.dt||'').slice(0,10);r.cancel=isCancel(r.st);r.un=r.un||0;});
   // preço unitário mediano por SKU (linhas normais)
@@ -397,12 +411,18 @@ function analyze(state){
     const w=ks.map(k=>k.un*(medPrice[k.sku]||k.pu||1));const sw=w.reduce((a,b)=>a+b,0)||ks.length;
     ks.forEach((k,i)=>{k.share=sw?w[i]/sw:1/ks.length;MONEY.forEach(m=>k.eff[m]=(p[m]||0)*k.share);k.rateado=true;k.cancel=k.cancel||p.cancel;k.pub=k.pub||p.pub;if(!k.mf&&p.mf)k.mf=p.mf;if(!k.mfm&&p.mfm)k.mfm=p.mfm;});
     p.un=ks.reduce((a,k)=>a+k.un,0);p.kids=ks;}
+  rows.forEach(r=>{if(r.pk!=='P')r.unit=unitOf(r,prods);});
+  rows.forEach(r=>{if(r.pk==='P'){const us=[...new Set((r.kids||[]).map(k=>k.unit))];r.unit=us.length===1?us[0]:'misto';}});
+  if(unit!=='todos'){ // pacotes viram linhas normais (só os produtos da unidade)
+    rows.forEach(r=>{if(r.pk==='C'){MONEY.forEach(k=>r[k]=r.eff[k]);r.pk=undefined;}});
+    rows=rows.filter(r=>r.pk!=='P'&&r.unit===unit);
+  }
   const eff=rows.filter(r=>r.pk!=='P'); // linhas que representam um produto vendido
   const money=rows.filter(r=>r.pk!=='C'); // linhas que carregam dinheiro (normais + pacote pai)
   const dates=eff.map(r=>r.d).filter(Boolean).sort();
   const minD=dates[0]||null,maxD=dates[dates.length-1]||null;
   // Ads: linhas do relatório
-  const adsRows=Object.values(state.ads||{}).map(r=>Object.assign({},r));
+  let adsRows=Object.values(state.ads||{}).map(r=>Object.assign({},r));
   // título -> sku (a partir das vendas)
   const titSku={};eff.forEach(r=>{if(!r.sku||!r.tit)return;const k=titleKey(r.tit);titSku[k]=titSku[k]||{};titSku[k][r.sku]=(titSku[k][r.sku]||0)+1;});
   const titKeys=Object.keys(titSku);
@@ -417,6 +437,7 @@ function analyze(state){
     return{sku:null,como:null};
   }
   adsRows.forEach(a=>{const m=skuForAd(a);a.sku=m.sku;a.como=m.como;a.ctr=a.imp?a.clk/a.imp*100:null;a.cvr=a.clk?a.vp/a.clk*100:null;a.acos=a.rec?a.inv/a.rec*100:null;a.roas=a.inv?a.rec/a.inv:null;});
+  if(unit!=='todos')adsRows=adsRows.filter(a=>unitOf({sku:a.sku,tit:a.tit},prods)===unit);
   const adsDe=adsRows.map(a=>a.de).filter(Boolean).sort()[0]||null;const adsAte=adsRows.map(a=>a.ate).filter(Boolean).sort().pop()||null;
   // investimento por SKU e vendas por publicidade no período do Ads
   const adsInvBy={};adsRows.forEach(a=>{if(a.sku)adsInvBy[a.sku]=(adsInvBy[a.sku]||0)+a.inv;});
@@ -452,7 +473,7 @@ function analyze(state){
   const skuList=Object.values(skus);
   skuList.forEach(s=>{
     const p=prods[s.pid]||{};s.prod=p;
-    s.tit=Object.keys(s.tits).sort((a,b)=>s.tits[b]-s.tits[a])[0]||'';
+    s.tit=Object.keys(s.tits).sort((a,b)=>s.tits[b]-s.tits[a])[0]||'';s.unit=unitOf({sku:s.sku,tit:s.tit},prods);
     s.nTotal=s.n+s.nCancel;s.cancelPct=s.nTotal?s.nCancel/s.nTotal*100:0;
     s.ticket=s.n?s.rp/s.n:0;s.precoMed=s.un?s.rp/s.un:(medPrice[s.sku]||0);
     s.margem=s.rp?s.lucro/s.rp*100:0;s.pubPct=s.n?s.nPub/s.n*100:0;
@@ -475,9 +496,9 @@ function analyze(state){
   const pares={};skuList.forEach(s=>{if(/semfull/i.test(s.sku)||/full/i.test(s.sku)||true){(pares[s.base]=pares[s.base]||[]).push(s);}});
   const paresList=Object.values(pares).filter(g=>g.length>1&&g.some(s=>/semfull/i.test(s.sku)));
   // gastos: duplicados
-  custos.forEach(c=>{c.flags=[];});
-  for(let i=0;i<custos.length;i++)for(let j=i+1;j<custos.length;j++){
-    const a=custos[i],b=custos[j];if(a.tipo!==b.tipo)continue;
+  custosAll.forEach(c=>{c.flags=[];});
+  for(let i=0;i<custosAll.length;i++)for(let j=i+1;j<custosAll.length;j++){
+    const a=custosAll[i],b=custosAll[j];if(a.tipo!==b.tipo)continue;
     const ov=(a.ini&&a.fim&&b.ini&&b.fim)?overlapDays(a.ini,a.fim,b.ini,b.fim)>0:(!a.ini&&!b.ini);
     const sameVal=Math.abs((+a.valor||0)-(+b.valor||0))<0.011;
     const sameDesc=norm(a.desc)&&norm(a.desc)===norm(b.desc);
@@ -488,6 +509,7 @@ function analyze(state){
     else if(sameVal&&sameDesc)msg='mesmo valor e descrição';
     if(msg){a.flags.push({com:b,msg});b.flags.push({com:a,msg});}
   }
+  custos.forEach(c=>{const o=custosAll.find(x=>x.id===c.id);c.flags=o?o.flags:[];});
   const gastosTotal=custos.reduce((a,c)=>a+(+c.valor||0),0);
   const gastosPorTipo={};custos.forEach(c=>{gastosPorTipo[c.tipo]=(gastosPorTipo[c.tipo]||0)+(+c.valor||0);});
   // fechamentos (janelas por data de liberação)
@@ -507,7 +529,7 @@ function analyze(state){
   adsT.acos=adsT.rec?adsT.inv/adsT.rec*100:null;adsT.roas=adsT.inv?adsT.rec/adsT.inv:null;
   const semCusto=skuList.filter(s=>s.custoEstimado&&s.n>0);
   const abaixoCusto=skuList.filter(s=>s.abaixoCusto),margemBaixa=skuList.filter(s=>s.margemBaixa);
-  return{cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,abaixoCusto,margemBaixa,adsPerSale,pubCountBy,adsInvBy,medPrice};
+  return{unit,custosAll,cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,abaixoCusto,margemBaixa,adsPerSale,pubCountBy,adsInvBy,medPrice};
 }
 function adsVerdict(m,limite,cfg){
   const notes=[];
@@ -616,7 +638,7 @@ function setSync(){const el=document.getElementById('sync');
   else{el.className='status local';el.querySelector('span').textContent='Modo local (só neste navegador)';}}
 
 // ---------- UI ----------
-const ui={view:'resumo',apres:(()=>{try{return localStorage.getItem('lb_apres')==='1';}catch(e){return false;}})(),open:{},vf:{de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100},af:{camp:'',ver:'',q:''},sf:{q:'',ord:'rp'},editCusto:null,pending:[],ff:{q:''}};
+const ui={unidade:(()=>{try{const u=localStorage.getItem('lb_unid');return ['todos','dtf','canecas'].includes(u)?u:'todos';}catch(e){return 'todos';}})(),view:'resumo',apres:(()=>{try{return localStorage.getItem('lb_apres')==='1';}catch(e){return false;}})(),open:{},vf:{de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100},af:{camp:'',ver:'',q:''},sf:{q:'',ord:'rp'},editCusto:null,pending:[],ff:{q:''}};
 const VIEWS=['resumo','visao','importar','vendas','anuncios','ads','gastos','folha','rateio','fechamentos','full','regras'];
 let A=null,renderT=null;
 function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(render,30);}
@@ -624,16 +646,18 @@ function routeFromHash(){const h=(location.hash||'').replace('#','');ui.view=VIE
 window.addEventListener('hashchange',()=>{routeFromHash();render();window.scrollTo(0,0);});
 
 function render(){
-  A=analyze(state);
+  A=analyze(state,ui.unidade);
+  document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.u===ui.unidade));
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.v===ui.view));
   const nAlert=countAlerts();const tabG=document.querySelector('#tabs a[data-v=gastos]');tabG.innerHTML='Gastos'+(nAlert.dup?` <span class="badge warn">${nAlert.dup}</span>`:'');
   const app=document.getElementById('app');
   document.body.classList.toggle('apres',!!ui.apres);
   const fn={resumo:vResumo,visao:vVisao,importar:vImportar,vendas:vVendas,anuncios:vAnuncios,ads:vAds,gastos:vGastos,folha:vFolha,rateio:vRateio,fechamentos:vFech,full:vFull,regras:vRegras}[ui.view];
-  app.innerHTML=`<section data-view="${ui.view}">${fn()}</section>`;
+  const aviso=ui.unidade!=='todos'&&!['folha','rateio','importar','regras'].includes(ui.view)?`<div class="alert info">Mostrando só <b>${UNID_NOME[ui.unidade]}</b>. Gastos “gerais” entram pela metade. Para ver tudo, escolha <b>Ambos</b> no topo.</div>`:'';
+  app.innerHTML=`${aviso}<section data-view="${ui.view}">${fn()}</section>`;
   bindCommon();
 }
-function countAlerts(){return{dup:A.custos.filter(c=>c.flags&&c.flags.length).length};}
+function countAlerts(){return{dup:A.custosAll.filter(c=>c.flags&&c.flags.length).length};}
 function hasData(){return A.rows.length>0;}
 function emptyHint(){return `<div class="empty">Nenhuma venda importada ainda. Vá em <a href="#importar">Importar</a> e solte aqui o relatório de vendas do Mercado Livre (xlsx) e o relatório de anúncios patrocinados (Ads).</div>`;}
 
@@ -669,8 +693,8 @@ function vResumo(){
   semaforos.push({cls:fullOk.length?'good':'',href:'#full',t:fullOk.length?`${fullOk.length} produto${fullOk.length>1?'s':''} com perfil para ir ao Full`:'Nenhum produto novo com perfil para o Full agora',s:fullOk.length?fullOk.slice(0,5).map(s=>s.sku).join(', '):`Precisa girar ${cfg.fullMinUnidades30}+ unidades em 30 dias com margem acima de ${cfg.fullMinMargem}%`});
   const faltam=A.winList.reduce((a,w)=>a+Math.max(0,w.faltam),0);
   semaforos.push({cls:'info',href:'#fechamentos',t:`Falta receber ${fmtBRL(faltam)} do Mercado Livre`,s:A.winList.length?`Soma dos períodos ainda não pagos; próximo: ${(A.winList.find(w=>w.faltam>0)||{}).label||'—'}`:'Nenhuma data de liberação nas vendas importadas'});
-  const dup=A.custos.filter(x=>x.flags.length);
-  semaforos.push({cls:dup.length?'bad':'good',href:'#gastos',t:dup.length?`${dup.length} gasto${dup.length>1?'s':''} repetido${dup.length>1?'s':''} para conferir`:'Nenhum gasto repetido',s:dup.length?dup.slice(0,3).map(x=>x.desc||x.tipo).join('; '):`${A.custos.length} gastos registrados, ${fmtBRL(A.gastosTotal)} no total`});
+  const dup=A.custosAll.filter(x=>x.flags.length);
+  semaforos.push({cls:dup.length?'bad':'good',href:'#gastos',t:dup.length?`${dup.length} gasto${dup.length>1?'s':''} repetido${dup.length>1?'s':''} para conferir`:'Nenhum gasto repetido',s:dup.length?dup.slice(0,3).map(x=>x.desc||x.tipo).join('; '):`${A.custos.length} gastos registrados, ${fmtBRL(A.gastosTotal)} no total${ui.unidade!=='todos'?' (desta unidade)':''}`});
   if(A.abaixoCusto.length)semaforos.push({cls:'bad',href:'#anuncios',t:`${A.abaixoCusto.length} produto${A.abaixoCusto.length>1?'s':''} vendendo abaixo do custo`,s:A.abaixoCusto.slice(0,4).map(s=>`${s.sku}: preço mínimo ${fmtBRL(s.precoMinimo)}`).join(' · ')});
   else if(A.margemBaixa.length)semaforos.push({cls:'warn',href:'#anuncios',t:`${A.margemBaixa.length} produto${A.margemBaixa.length>1?'s':''} com margem abaixo de ${cfg.margemAlerta}%`,s:A.margemBaixa.slice(0,4).map(s=>`${s.sku} (${fmtP(s.margem,0)})`).join(' · ')});
   // meta do mês
@@ -684,7 +708,7 @@ function vResumo(){
   function score(s){return (s.adsVer&&s.adsVer.code==='nao'?3:0)+(s.lucro<0?3:0)+(!s.custoEstimado&&s.margem<10?2:0)+(s.cancelPct>cfg.fullMaxCancel&&s.nTotal>=5?2:0)+(s.un30prev&&s.un30<s.un30prev*0.7?1:0);}
   const piores=A.skuList.filter(s=>s.n>0&&score(s)>0).sort((a,b)=>score(b)-score(a)||a.lucro-b.lucro).slice(0,5);
   const card=(s,neg)=>`<a class="topcard" href="#anuncios" data-act="goto-sku" data-sku="${esc(s.sku)}" style="text-decoration:none;color:inherit"><span class="n" title="${esc(s.tit)}">${esc(s.sku)}</span><span class="big ${cls(s.lucro)}">${fmtBRL(s.lucro)}</span><span class="small muted">${fmtN(s.n)} vendas · margem ${fmtP(s.margem,0)}${s.custoEstimado?'*':''} · ${s.un30} un/30d</span>${neg?`<span class="act">→ ${acao(s).join(' · ')||'Acompanhar'}</span>`:`<span class="act">${s.adsVer?s.adsVer.label+' no Ads':'Sem Ads'} · ${s.fullVer.label}</span>`}</a>`;
-  return `<div class="row between"><h2>Resumo de ${fmtYM(P.ym)} <span class="muted small" style="font-family:var(--body);font-weight:400">${P.rotulo}</span></h2>
+  return `<div class="row between"><h2>Resumo de ${fmtYM(P.ym)}${ui.unidade!=='todos'?' · '+UNID_NOME[ui.unidade]:''} <span class="muted small" style="font-family:var(--body);font-weight:400">${P.rotulo}</span></h2>
     <div class="row"><span class="muted small">Dados até ${fmtD(A.maxD)}</span><button class="btn sm" data-act="apres">${ui.apres?'Sair da apresentação':'Modo apresentação'}</button></div></div>
   <div class="grid" style="gap:8px">${semaforos.map(s=>`<a class="sem ${s.cls}" href="${s.href}"><i></i><span><b>${esc(s.t)}</b><span class="sub">${esc(s.s)}</span></span></a>`).join('')}</div>
   ${metaHtml}
@@ -748,14 +772,14 @@ function vVisao(){
   if(!hasData())return `<h2>Visão geral</h2>${emptyHint()}${howCard()}`;
   const P=periodoAtual();const dv=(k)=>P&&P.prev.n?`<div class="small">${fmtYM(P.ym)} ${P.rotulo}: ${delta(P.cur[k],P.prev[k])} vs ${P.rotPrev}</div>`:'';
   const alerts=[];
-  const dup=A.custos.filter(c=>c.flags.length);if(dup.length)alerts.push(`<div class="alert bad"><b>${dup.length} gasto(s) com suspeita de repetição.</b> Confira em <a href="#gastos">Gastos</a> antes de fechar as contas.</div>`);
+  const dup=A.custosAll.filter(c=>c.flags.length);if(dup.length)alerts.push(`<div class="alert bad"><b>${dup.length} gasto(s) com suspeita de repetição.</b> Confira em <a href="#gastos">Gastos</a> antes de fechar as contas.</div>`);
   if(A.semCusto.length)alerts.push(`<div class="alert"><b>${A.semCusto.length} anúncio(s) sem custo do produto cadastrado.</b> Sem o custo, o lucro e o limite de ACOS ficam estimados. Cadastre em <a href="#anuncios">Anúncios</a>.</div>`);
   if(A.abaixoCusto.length)alerts.push(`<div class="alert bad"><b>${A.abaixoCusto.length} produto(s) vendendo abaixo do custo + tarifas:</b> ${A.abaixoCusto.slice(0,6).map(s=>esc(s.sku)+' (preço mínimo '+fmtBRL(s.precoMinimo)+')').join(', ')}${A.abaixoCusto.length>6?'…':''}. Suba o preço ou reveja o custo.</div>`);
   if(A.margemBaixa.length)alerts.push(`<div class="alert"><b>${A.margemBaixa.length} produto(s) com margem abaixo de ${cfg.margemAlerta}%:</b> ${A.margemBaixa.slice(0,6).map(s=>esc(s.sku)+' ('+fmtP(s.margem,0)+')').join(', ')}${A.margemBaixa.length>6?'…':''}.</div>`);
   const adsNao=A.skuList.filter(s=>s.adsVer&&s.adsVer.code==='nao');if(adsNao.length)alerts.push(`<div class="alert bad"><b>${adsNao.length} anúncio(s) em que o Ads não compensa:</b> ${adsNao.slice(0,6).map(s=>esc(s.sku)).join(', ')}${adsNao.length>6?'…':''}. Veja <a href="#ads">Ads</a>.</div>`);
   const fullOk=A.skuList.filter(s=>s.fullVer.code==='ok'&&!s.fullNow);if(fullOk.length)alerts.push(`<div class="alert good"><b>${fullOk.length} anúncio(s) com perfil para enviar ao Full:</b> ${fullOk.slice(0,6).map(s=>esc(s.sku)).join(', ')}${fullOk.length>6?'…':''}. Veja <a href="#full">Full</a>.</div>`);
   const semSku=A.adsRows.filter(a=>!a.sku).length;if(semSku)alerts.push(`<div class="alert info"><b>${semSku} linha(s) do relatório de Ads sem SKU identificado.</b> Vincule em <a href="#ads">Ads</a> para o custo de Ads entrar no cálculo por anúncio.</div>`);
-  if(!A.custos.length)alerts.push(`<div class="alert info">Nenhum gasto registrado. Registre Ads, seguidores e outros custos em <a href="#gastos">Gastos</a> para o lucro ficar real.</div>`);
+  if(!A.custosAll.length)alerts.push(`<div class="alert info">Nenhum gasto registrado. Registre Ads, seguidores e outros custos em <a href="#gastos">Gastos</a> para o lucro ficar real.</div>`);
   return `
   <div class="row between"><h2>Visão geral</h2><span class="muted small">Vendas de ${fmtD(A.minD)} a ${fmtD(A.maxD)} · ${fmtN(A.rows.length)} linhas importadas</span></div>
   ${alerts.length?`<div class="alerts">${alerts.join('')}</div>`:''}
@@ -836,7 +860,7 @@ function renderPending(){
       if(pt.tipo==='vendas'){const d=diffVendas(pt.rows);const ds=pt.rows.map(r=>(r.dt||'').slice(0,10)).filter(Boolean).sort();
         return `<div class="kv"><b>Tipo</b><span>Vendas (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} · ${pt.rows.length-d.novas} já existem</span><b>O que muda</b><span>${diffTxt(d)}</span><b>Período</b><span>${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])}</span></div>`;}
       const inv=pt.rows.reduce((a,r)=>a+r.inv,0);const de=pt.rows.map(r=>r.de).filter(Boolean).sort()[0],ate=pt.rows.map(r=>r.ate).filter(Boolean).sort().pop();
-      const dupAds=A.custos.filter(c=>c.tipo==='Ads'&&c.ini&&c.fim&&de&&ate&&overlapDays(c.ini,c.fim,de,ate)>0);
+      const dupAds=A.custosAll.filter(c=>c.tipo==='Ads'&&c.ini&&c.fim&&de&&ate&&overlapDays(c.ini,c.fim,de,ate)>0);
       return `<div class="kv"><b>Tipo</b><span>Ads (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} anúncios/campanhas</span><b>Período</b><span>${fmtD(de)} a ${fmtD(ate)}</span><b>Investimento</b><span>${fmtBRL(inv)}</span></div>
         <label class="row small" style="margin-top:8px;font-weight:600"><input type="checkbox" id="regads-${i}-${j}" ${dupAds.length?'':'checked'}> Registrar ${fmtBRL(inv)} como gasto de Ads (${fmtD(de)} a ${fmtD(ate)})</label>
         ${dupAds.length?`<div class="alert" style="margin-top:6px"><b>Atenção: já existe gasto de Ads nesse período</b> (${dupAds.map(c=>esc(c.desc||'Ads')+' '+fmtBRL(+c.valor)+' · '+fmtD(c.ini)+' a '+fmtD(c.fim)).join('; ')}). Marque a caixa só se for um gasto diferente.</div>`:''}`;
@@ -972,8 +996,8 @@ function vAnuncios(){
   <div class="card"><details ${ui.loteOpen?'open':''} id="lote"><summary>Cadastro de custos em lote (${A.semCusto.length} sem custo)</summary>
     <div class="grid g2" style="margin-top:10px">
       <div><p class="small muted">Preencha o custo unitário (e embalagem, se diferente do padrão) e clique em Salvar todos. Só os que mudaram são gravados.</p>
-      <div class="tbl-wrap" style="max-height:420px;overflow:auto;margin-top:8px"><table><thead><tr><th>SKU</th><th class="r">Vendas</th><th class="r">Preço médio</th><th class="r">Custo unit.</th><th class="r">Embalagem</th></tr></thead><tbody>
-      ${A.skuList.filter(s=>s.sku).sort((a,b)=>(a.custoEstimado===b.custoEstimado?b.n-a.n:a.custoEstimado?-1:1)).map(s=>`<tr><td><span class="sku">${esc(s.sku)}</span><span class="t small muted" style="max-width:220px">${esc(s.tit)}</span></td><td class="r">${s.n}</td><td class="r">${fmtBRL(s.precoMed)}</td><td class="r"><input type="number" step="0.01" min="0" id="pl-custo-${s.pid}" data-sku="${esc(s.sku)}" value="${s.prod.custo!=null?s.prod.custo:''}" style="width:90px;text-align:right;padding:4px 6px"></td><td class="r"><input type="number" step="0.01" min="0" id="pl-emb-${s.pid}" value="${s.prod.emb!=null?s.prod.emb:''}" style="width:80px;text-align:right;padding:4px 6px"></td></tr>`).join('')}
+      <div class="tbl-wrap" style="max-height:420px;overflow:auto;margin-top:8px"><table><thead><tr><th>SKU</th><th class="r">Vendas</th><th class="r">Preço médio</th><th class="r">Custo unit.</th><th class="r">Embalagem</th><th>Unidade</th></tr></thead><tbody>
+      ${A.skuList.filter(s=>s.sku).sort((a,b)=>(a.custoEstimado===b.custoEstimado?b.n-a.n:a.custoEstimado?-1:1)).map(s=>`<tr><td><span class="sku">${esc(s.sku)}</span><span class="t small muted" style="max-width:220px">${esc(s.tit)}</span></td><td class="r">${s.n}</td><td class="r">${fmtBRL(s.precoMed)}</td><td class="r"><input type="number" step="0.01" min="0" id="pl-custo-${s.pid}" data-sku="${esc(s.sku)}" value="${s.prod.custo!=null?s.prod.custo:''}" style="width:90px;text-align:right;padding:4px 6px"></td><td class="r"><input type="number" step="0.01" min="0" id="pl-emb-${s.pid}" value="${s.prod.emb!=null?s.prod.emb:''}" style="width:80px;text-align:right;padding:4px 6px"></td><td><select id="pl-un-${s.pid}" style="padding:4px 6px"><option value="">Auto (${UNID_NOME[unitOf({sku:s.sku,tit:s.tit},{})]})</option><option value="dtf" ${s.prod.un==='dtf'?'selected':''}>DTF UV</option><option value="canecas" ${s.prod.un==='canecas'?'selected':''}>Canecas</option></select></td></tr>`).join('')}
       </tbody></table></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" data-act="save-lote" ${Store.canWrite?'':'disabled'}>Salvar todos</button><span id="lote-status" class="small muted"></span></div></div>
       <div><p class="small muted">Ou cole uma lista, uma linha por produto, no formato <code>SKU;custo</code> ou <code>SKU;custo;embalagem</code> (aceita vírgula ou tabulação, vindo do Excel). Depois clique em Aplicar: os campos da tabela são preenchidos e você confere antes de salvar.</p>
@@ -988,6 +1012,7 @@ function skuDetail(s){
       <label>Custo unitário (R$)<input type="number" step="0.01" min="0" id="pc-custo-${s.pid}" value="${p.custo!=null?p.custo:''}" placeholder="ex.: 8,50"></label>
       <label>Embalagem por venda (R$)<input type="number" step="0.01" min="0" id="pc-emb-${s.pid}" value="${p.emb!=null?p.emb:''}" placeholder="padrão ${A.cfg.embalagemPadrao}"></label>
       <label>Códigos MLB (vírgula)<input type="text" id="pc-mlbs-${s.pid}" value="${esc((p.mlbs||[]).join(', '))}" placeholder="MLB123…"></label>
+      <label>Unidade<select id="pc-un-${s.pid}"><option value="">Automática (${UNID_NOME[unitOf({sku:s.sku,tit:s.tit},{})]})</option><option value="dtf" ${p.un==='dtf'?'selected':''}>DTF UV</option><option value="canecas" ${p.un==='canecas'?'selected':''}>Canecas</option></select></label>
       <label>Observação<input type="text" id="pc-obs-${s.pid}" value="${esc(p.obs||'')}"></label>
       <button class="btn primary" data-act="save-prod" data-pid="${s.pid}" data-sku="${esc(s.sku)}" ${Store.canWrite?'':'disabled'}>Salvar</button>
     </div></div>`;
@@ -1050,13 +1075,14 @@ function vAds(){
 
 // ----- Gastos -----
 function vGastos(){
-  const e=ui.editCusto||{};const list=A.custos.slice().sort((a,b)=>(b.ini||'')<(a.ini||'')?-1:(b.ini||'')>(a.ini||'')?1:0);
+  const e=ui.editCusto||{};const list=A.custosAll.slice().sort((a,b)=>(b.ini||'')<(a.ini||'')?-1:(b.ini||'')>(a.ini||'')?1:0);
   const dup=list.filter(c=>c.flags.length);
-  return `<div class="row between"><h2>Gastos</h2><span class="muted small">Total ${fmtBRL(A.gastosTotal)}</span></div>
+  return `<div class="row between"><h2>Gastos</h2><span class="muted small">Total ${fmtBRL(A.custosAll.reduce((a,c)=>a+(+c.valor||0),0))}</span></div>
   ${dup.length?`<div class="alert bad"><b>${dup.length} gasto(s) parecem repetidos.</b> Confira as linhas marcadas abaixo e exclua a cópia, para o lucro não ficar menor do que é.</div>`:''}
   <div class="card"><h3>${e.id?'Editar gasto':'Registrar gasto'}</h3>
     <div class="form">
       <label>Tipo<select id="c-tipo">${TIPOS_GASTO.map(t=>`<option ${e.tipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+      <label>Unidade<select id="c-unid"><option value="geral" ${!e.unidade||e.unidade==='geral'?'selected':''}>Geral (divide entre as duas)</option><option value="dtf" ${e.unidade==='dtf'?'selected':''}>Só DTF UV</option><option value="canecas" ${e.unidade==='canecas'?'selected':''}>Só Canecas</option></select></label>
       <label class="full" style="grid-column:span 2">Descrição<input type="text" id="c-desc" value="${esc(e.desc||'')}" placeholder="ex.: Ads outubro, Seguidores ML (2 contas)"></label>
       <label>Valor (R$)<input type="number" step="0.01" id="c-valor" value="${e.valor!=null?e.valor:''}"></label>
       <label>Início<input type="date" id="c-ini" value="${e.ini||''}"></label>
@@ -1069,18 +1095,18 @@ function vGastos(){
   </div>
   <div class="card"><h3>Lançamentos</h3>
   ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Tipo</th><th>Descrição</th><th class="r">Valor</th><th>Período</th><th class="r">Por dia</th><th>Alerta</th><th></th></tr></thead><tbody>
-  ${list.map(c=>{const dias=c.ini&&c.fim?dayDiff(c.ini,c.fim)+1:null;return `<tr ${c.flags.length?'style="background:var(--bad-soft)"':''}><td><span class="badge ${c.tipo==='Ads'?'ml':''}">${esc(c.tipo)}</span></td><td>${esc(c.desc)}${c.obs?`<span class="t small muted">${esc(c.obs)}</span>`:''}</td><td class="r">${fmtBRL(+c.valor)}</td><td class="num small">${c.ini?fmtD(c.ini)+' a '+fmtD(c.fim):'<span class="muted">sem período</span>'}</td><td class="r small">${dias?fmtBRL(c.valor/dias):'—'}</td>
+  ${list.map(c=>{const dias=c.ini&&c.fim?dayDiff(c.ini,c.fim)+1:null;return `<tr ${c.flags.length?'style="background:var(--bad-soft)"':''}><td><span class="badge ${c.tipo==='Ads'?'ml':''}">${esc(c.tipo)}</span> <span class="badge info">${c.unidade==='dtf'?'DTF UV':c.unidade==='canecas'?'Canecas':'Geral'}</span></td><td>${esc(c.desc)}${c.obs?`<span class="t small muted">${esc(c.obs)}</span>`:''}</td><td class="r">${fmtBRL(+c.valor)}</td><td class="num small">${c.ini?fmtD(c.ini)+' a '+fmtD(c.fim):'<span class="muted">sem período</span>'}</td><td class="r small">${dias?fmtBRL(c.valor/dias):'—'}</td>
     <td class="small">${c.flags.map(f=>`<span class="badge bad">✕ repetido?</span> ${esc(f.msg)} com “${esc(f.com.desc||f.com.tipo)}” (${fmtBRL(+f.com.valor)})`).join('<br>')}</td>
     <td class="row"><button class="btn sm" data-act="edit-custo" data-id="${c.id}">Editar</button><button class="btn sm danger" data-act="del-custo" data-id="${c.id}" ${Store.canWrite?'':'disabled'}>Excluir</button></td></tr>`;}).join('')}
   </tbody></table></div>
-  <div class="row" style="margin-top:10px">${Object.keys(A.gastosPorTipo).map(t=>`<span class="badge">${esc(t)}: ${fmtBRL(A.gastosPorTipo[t])}</span>`).join('')}</div>`:'<p class="muted">Nenhum gasto registrado. Comece pelo investimento em Ads e pelos seguidores do ML (R$ 50 por mês para cada conta).</p>'}
+  <div class="row" style="margin-top:10px">${(()=>{const g={};A.custosAll.forEach(c=>{g[c.tipo]=(g[c.tipo]||0)+(+c.valor||0);});return Object.keys(g).map(t=>`<span class="badge">${esc(t)}: ${fmtBRL(g[t])}</span>`).join('');})()}</div>`:'<p class="muted">Nenhum gasto registrado. Comece pelo investimento em Ads e pelos seguidores do ML (R$ 50 por mês para cada conta).</p>'}
   </div>`;
 }
 function liveDup(){
   const el=document.getElementById('dup-live');if(!el)return;
   const c={tipo:document.getElementById('c-tipo').value,desc:document.getElementById('c-desc').value,valor:+document.getElementById('c-valor').value||0,ini:document.getElementById('c-ini').value,fim:document.getElementById('c-fim').value};
   const e=ui.editCusto||{};const hits=[];
-  A.custos.forEach(o=>{if(o.id===e.id||o.tipo!==c.tipo)return;const ov=(o.ini&&o.fim&&c.ini&&c.fim)?overlapDays(o.ini,o.fim,c.ini,c.fim)>0:(!o.ini&&!c.ini);
+  A.custosAll.forEach(o=>{if(o.id===e.id||o.tipo!==c.tipo)return;const ov=(o.ini&&o.fim&&c.ini&&c.fim)?overlapDays(o.ini,o.fim,c.ini,c.fim)>0:(!o.ini&&!c.ini);
     if(Math.abs((+o.valor||0)-c.valor)<0.011&&ov&&c.valor)hits.push(['mesmo valor e período sobreposto',o]);
     else if(norm(c.desc)&&norm(c.desc)===norm(o.desc)&&ov)hits.push(['mesma descrição e período sobreposto',o]);
     else if(c.tipo==='Ads'&&ov&&c.ini)hits.push(['já existe gasto de Ads nesse período',o]);});
@@ -1300,8 +1326,8 @@ function bindCommon(){
       ui.loteOpen=true;document.getElementById('lote-aplicado').textContent=`${ok} preenchido(s)`+(nf.length?` · não encontrados: ${nf.slice(0,8).join(', ')}${nf.length>8?'…':''}`:'')+'. Confira e clique em Salvar todos.';}
     else if(act==='save-lote'){ui.loteOpen=true;const st=document.getElementById('lote-status');let n=0,err=0;const list=A.skuList.filter(s=>s.sku);
       for(const s of list){const i1=document.getElementById('pl-custo-'+s.pid),i2=document.getElementById('pl-emb-'+s.pid);if(!i1)continue;const cu=i1.value===''?null:+i1.value,em=i2.value===''?null:+i2.value;const p=s.prod||{};
-        if((p.custo==null?null:+p.custo)===cu&&(p.emb==null?null:+p.emb)===em)continue;
-        const d=Object.assign({},p,{sku:s.sku,custo:cu,emb:em,mlbs:p.mlbs||[],obs:p.obs||''});delete d.id;
+        const un=document.getElementById('pl-un-'+s.pid).value||null;if((p.custo==null?null:+p.custo)===cu&&(p.emb==null?null:+p.emb)===em&&(p.un||null)===un)continue;
+        const d=Object.assign({},p,{sku:s.sku,custo:cu,emb:em,un:un,mlbs:p.mlbs||[],obs:p.obs||''});delete d.id;
         try{await Store.put('produtos',s.pid,d);n++;st.textContent=`Salvando… ${n}`;}catch(e){err++;}}
       toast(`${n} produto(s) salvo(s)`+(err?`, ${err} com erro`:''));render();}
     else if(act==='vf-more'){ui.vf.lim+=200;render();}
@@ -1313,12 +1339,12 @@ function bindCommon(){
     else if(act==='wipe'){const c=document.getElementById('wipe-confirm');c.innerHTML='<button class="btn danger sm" data-act="wipe-yes">Sim, apagar tudo</button>';}
     else if(act==='wipe-yes')await wipeAll();
     else if(act==='save-prod'){const pid=el.dataset.pid,sku=el.dataset.sku;const g=k=>document.getElementById(`pc-${k}-${pid}`).value;
-      const d={sku,custo:g('custo')===''?null:+g('custo'),emb:g('emb')===''?null:+g('emb'),mlbs:g('mlbs').split(',').map(s=>s.trim()).filter(Boolean),obs:g('obs')};
+      const d={sku,custo:g('custo')===''?null:+g('custo'),emb:g('emb')===''?null:+g('emb'),mlbs:g('mlbs').split(',').map(s=>s.trim()).filter(Boolean),obs:g('obs'),un:document.getElementById('pc-un-'+pid).value||null};
       await Store.put('produtos',pid,d);toast('Custos de '+sku+' salvos');}
     else if(act==='map-sku'){const mlb=el.dataset.mlb;const sku=document.getElementById('map-'+mlb).value;const m=Object.assign({},state.mapeamento);if(sku)m[mlb]=sku;else delete m[mlb];await Store.put('config','mapeamento',m);toast('Vínculo salvo');}
     else if(act==='unmap-sku'){const m=Object.assign({},state.mapeamento);delete m[el.dataset.mlb];await Store.put('config','mapeamento',m);}
     else if(act==='save-custo'){const g=id=>document.getElementById(id).value;const e=ui.editCusto||{};
-      const d={tipo:g('c-tipo'),desc:g('c-desc').trim(),valor:+g('c-valor'),ini:g('c-ini')||null,fim:g('c-fim')||null,obs:g('c-obs').trim()};
+      const d={tipo:g('c-tipo'),unidade:g('c-unid'),desc:g('c-desc').trim(),valor:+g('c-valor'),ini:g('c-ini')||null,fim:g('c-fim')||null,obs:g('c-obs').trim()};
       if(!d.valor){toast('Informe o valor');return;}if(d.ini&&!d.fim)d.fim=d.ini;if(d.fim&&!d.ini)d.ini=d.fim;if(d.ini&&d.fim&&d.fim<d.ini){toast('Fim antes do início');return;}
       if(e.imp)d.imp=e.imp;await Store.put('custos',e.id||uid('c'),d);ui.editCusto=null;toast('Gasto salvo');render();}
     else if(act==='edit-custo'){ui.editCusto=Object.assign({},state.custos[el.dataset.id]);render();window.scrollTo(0,0);}
@@ -1341,7 +1367,7 @@ function bindCommon(){
     else if(act==='add-unidade'){const r=rateioCfg();r.unidades.push({id:uid('u'),nome:'Nova unidade',ativa:true});render();}
     else if(act==='rm-unidade'){const r=rateioCfg();r.unidades.splice(+el.dataset.i,1);render();}
     else if(act==='lancar-gasto'){const r=rateioCfg();const ym=el.dataset.ym;const R=calcRateio(r,ym);const u=r.unidades.find(x=>x.id===el.dataset.u);if(!R||!u)return;const v=+R.tot[u.id].toFixed(2);if(!v){toast('Essa unidade não tem valor neste mês');return;}
-      await Store.put('custos',uid('c'),{tipo:'Fixo',desc:`Rateio ${fmtYM(ym)} – ${u.nome}`,valor:v,ini:ym+'-01',fim:ym+'-'+pad(R.dias),obs:'Gerado pela aba Rateio mensal'});toast('Lançado em Gastos: '+fmtBRL(v));}
+      await Store.put('custos',uid('c'),{tipo:'Fixo',desc:`Rateio ${fmtYM(ym)} – ${u.nome}`,valor:v,ini:ym+'-01',fim:ym+'-'+pad(R.dias),unidade:/dtf/i.test(u.nome)?'dtf':/caneca/i.test(u.nome)?'canecas':'geral',obs:'Gerado pela aba Rateio mensal'});toast('Lançado em Gastos: '+fmtBRL(v));}
   };
   app.oninput=ev=>{const id=ev.target.id;
     if(id.startsWith('vf-')){const k=id.slice(3);ui.vf[k]=ev.target.value;ui.vf.lim=100;if(k==='q')debounce(render);else render();}
@@ -1395,6 +1421,7 @@ async function wipeAll(){
 }
 
 // ---------- início ----------
+document.getElementById('seg').onclick=e=>{const b=e.target.closest('button[data-u]');if(!b)return;ui.unidade=b.dataset.u;try{localStorage.setItem('lb_unid',ui.unidade);}catch(x){}render();};
 routeFromHash();
 render();
 Store.init().then(()=>render());

@@ -11,6 +11,12 @@ Painel para fechamento do Mercado Livre: importa o relatório de **Vendas** e o 
 - **Fechamentos**: valores a receber por período (data de liberação), gastos rateados por dia, recebido e "faltam".
 - **Folha impressa**: base de custo do filme A, filme B (laminação), tintas (preço, ml, consumo por m²) e outros insumos; custo por cm², m², metro linear, por tamanho de folha (29×21, 29×42, 29×50, 29×100, 40×72 ou personalizada) e por peça. Cada SKU de DTF UV recebe um tamanho de folha, sugerido pelo preço cheio de cada tamanho (29×21 R$ 39, 29×42 R$ 49,90, 29×50 R$ 65,90, 29×100 R$ 99) e pelas medidas do título, editável por SKU; o custo do SKU passa a ser o custo da folha × folhas por venda.
 - **Rateio mensal**: custos do mês (energia, imposto, Ads, etc.) divididos entre unidades em partes iguais, por percentual ou valor direto; material gasto no mês (filme e tinta) atribuído à unidade que imprime; resultado por mês, semana, dia e por folha; opção de incluir ou não uma unidade na divisão; botão para lançar a parte de cada unidade em Gastos.
+- **Mês a mês**: lucro de cada mês por unidade (gráfico e tabela com Mercado Livre, produto, imposto, Ads, outros gastos, margem e comparação com o mês anterior).
+- **Comissões semanais**: quem recebe, percentual, base (lucro após custos, Total ML ou receita) e unidade; valor de cada semana, marcação de pago e ajuste quando uma venda é cancelada depois do pagamento.
+- **Catálogo**: lista de todas as artes (colada ou importada) comparada com os SKUs no Mercado Livre (vendas e planilha de anúncios do ML), mostrando o que ainda falta subir, com as de tema em alta primeiro.
+- **Tendências dos concorrentes (DTF UV)**: temas em alta no ML (lista editável, começa com o que estava em destaque em 05/11/2026), link de busca de concorrentes por tema, quantas artes vocês têm em cada tema e calendário de datas de hype com prazo para criar e postar.
+- **Desconto máximo por folha** (aba Folha impressa): preço mínimo e desconto máximo de cada tamanho antes de dar prejuízo, usando tarifa, frete e Ads reais de cada tamanho.
+- **Imposto** como percentual da receita (geral ou por unidade) e **quantidade a enviar ao Full** pelo giro de 30 dias.
 - **Full**: regra a regra, se vale enviar o anúncio ao Mercado Envios Full; compara SKUs FULL × SEMFULL.
 - **Regras e cálculo**: todos os limites são editáveis.
 

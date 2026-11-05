@@ -18,6 +18,7 @@
   --accent:#1f4e79; --accent-fg:#ffffff; --accent-soft:#e3ecf5;
   --ml:#e8c400; --ml-soft:#fff4bf;
   --good:#1e7a46; --good-soft:#dff3e6; --warn:#a4660a; --warn-soft:#fbeed2; --bad:#b3261e; --bad-soft:#fae1df; --info:#365f8a; --info-soft:#e3ecf5; --mute:#6b7280; --mute-soft:#ebe9e2;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --grid:#e1e0d9; --prev:#898781;
   --display:'Sora',system-ui,sans-serif; --body:'Nunito Sans',system-ui,sans-serif;
   --shadow:0 1px 2px rgba(29,34,48,.06),0 4px 14px rgba(29,34,48,.05);
   --r:10px;
@@ -28,10 +29,12 @@
   --accent:#8fb6dc; --accent-fg:#101827; --accent-soft:#223449;
   --ml:#e8c400; --ml-soft:#4a4010;
   --good:#6fcf97; --good-soft:#1c3a2a; --warn:#e8b457; --warn-soft:#3f3015; --bad:#f28b82; --bad-soft:#44201e; --info:#8fb6dc; --info-soft:#223449; --mute:#9aa0ad; --mute-soft:#2c313b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --grid:#2c2c2a; --prev:#898781;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --grid:#2c2c2a; --prev:#898781;
   --bg:#15181f; --surface:#1d2129; --surface2:#262b35; --line:#343a47; --line2:#454c5c;
   --fg:#ecebe5; --fg2:#b5b9c4; --fg3:#858b99;
   --accent:#8fb6dc; --accent-fg:#101827; --accent-soft:#223449;
@@ -155,6 +158,29 @@ details summary{cursor:pointer;font-weight:700;color:var(--fg2)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:600;display:none;max-width:90vw}
 .inline-edit{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));align-items:end;margin-top:10px}
 .inline-edit label{display:grid;gap:3px;font-size:.72rem;font-weight:700;color:var(--fg3);text-transform:uppercase}
+.sem{display:grid;grid-template-columns:14px 1fr;gap:12px;align-items:start;padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:1.02rem;text-decoration:none;color:var(--fg)}
+.sem:hover{background:var(--surface2)}
+.sem i{width:14px;height:14px;border-radius:50%;margin-top:5px;display:block;background:var(--mute)}
+.sem.good i{background:var(--good)} .sem.warn i{background:var(--warn)} .sem.bad i{background:var(--bad)} .sem.info i{background:var(--info)}
+.sem b{font-family:var(--display);font-weight:600}
+.sem .sub{display:block;font-size:.85rem;color:var(--fg2);margin-top:2px}
+.delta{font-size:.78rem;font-weight:700;white-space:nowrap} .delta.up{color:var(--good)} .delta.down{color:var(--bad)} .delta.flat{color:var(--fg3)}
+.topcard{display:grid;gap:3px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);min-width:0}
+.topcard .n{font-family:var(--display);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topcard .big{font-family:var(--display);font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums}
+.topcard .act{font-size:.85rem;color:var(--fg2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;margin-top:8px;color:var(--fg2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.chart .grid{stroke:var(--grid)} .chart .axis{stroke:var(--line2)}
+.chart .ln{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.chart .ln.cur{stroke:var(--s1)} .chart .ln.prev{stroke:var(--prev);stroke-dasharray:5 4}
+.chart .lbl{font-weight:700;fill:var(--fg)}
+body.apres nav.tabs,body.apres .noapres{display:none!important}
+body.apres main{font-size:1.12rem}
+body.apres .sem{font-size:1.22rem;padding:16px 18px}
+body.apres .tile .val{font-size:1.9rem}
+body.apres .topcard .big{font-size:1.5rem}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:640px){ .tile .val{font-size:1.2rem} .calc{grid-template-columns:1fr auto} }
 </style>
@@ -164,6 +190,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--fg2)}
     <div class="brand"><span class="dot"></span><h1>Painel ML · Laser Brindes</h1></div>
     <span id="sync" class="status"><i></i><span>Conectando…</span></span>
     <nav class="tabs" id="tabs">
+      <a href="#resumo" data-v="resumo">Resumo</a>
       <a href="#visao" data-v="visao">Visão geral</a>
       <a href="#importar" data-v="importar">Importar</a>
       <a href="#vendas" data-v="vendas">Vendas</a>
@@ -342,6 +369,7 @@ const DEFAULT_CFG={
   embalagemPadrao:0, custoPadraoPct:0, acosLimitePadrao:25,
   adsMinImpressoes:1000, adsMinCliques:20, adsCtrFraco:0.25, adsCvrFraco:1.5, adsFolga:70, adsInvestSemVenda:15,
   fullMinUnidades30:20, fullMinMargem:20, fullMaxCancel:10, fullMinVendas:10, fullPrecoFreteGratis:79,
+  margemAlerta:10, metaReceita:0, metaLucro:0,
 };
 const TIPOS_GASTO=['Ads','Seguidores ML','Embalagem','Frete','Fixo','Imposto','Produto','Outros'];
 function b64url(s){try{return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')||'_';}catch(e){return '_';}}
@@ -445,6 +473,9 @@ function analyze(state){
     s.adsVer=s.adsRows.length?adsVerdict(m,s.limiteAcos,cfg):null;
     s.fullVer=fullVerdict(s,cfg);
     s.fullNow=Object.keys(s.ents).some(e=>/full/i.test(e))||false;
+    s.abaixoCusto=!s.custoEstimado&&s.n>0&&s.contrib<0; // nem paga produto + tarifas
+    s.margemBaixa=!s.custoEstimado&&s.n>0&&!s.abaixoCusto&&s.margem<+cfg.margemAlerta;
+    s.precoMinimo=s.un&&!s.custoEstimado?(s.custoProd+s.emb+s.ads+s.fixo+(s.rp-s.tot))/s.un:null; // preço por unidade que zera o lucro
     s.base=norm(s.sku).replace(/semfull|full/g,'').replace(/0+(\d)/g,'$1').replace(/[^a-z0-9]/g,'');
   });
   adsRows.forEach(a=>{const s=a.sku?skus[a.sku]:null;a.limite=s?s.limiteAcos:+cfg.acosLimitePadrao;a.limiteEstimado=s?s.limiteEstimado:true;a.ver=adsVerdict(a,a.limite,cfg);a.lucroAds=a.rec*a.limite/100-a.inv;});
@@ -483,7 +514,8 @@ function analyze(state){
   for(const s in adsInvBy)if(!pubCountBy[s])adsT.semVenda+=adsInvBy[s];
   adsT.acos=adsT.rec?adsT.inv/adsT.rec*100:null;adsT.roas=adsT.inv?adsT.rec/adsT.inv:null;
   const semCusto=skuList.filter(s=>s.custoEstimado&&s.n>0);
-  return{cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,adsPerSale,pubCountBy,adsInvBy,medPrice};
+  const abaixoCusto=skuList.filter(s=>s.abaixoCusto),margemBaixa=skuList.filter(s=>s.margemBaixa);
+  return{cfg,rows,eff,money,byId,minD,maxD,skus,skuList,adsRows,adsDe,adsAte,adsT,custos,gastosTotal,gastosPorTipo,winList,fatMes,vendMes,T,paresList,semCusto,abaixoCusto,margemBaixa,adsPerSale,pubCountBy,adsInvBy,medPrice};
 }
 function adsVerdict(m,limite,cfg){
   const notes=[];
@@ -592,11 +624,11 @@ function setSync(){const el=document.getElementById('sync');
   else{el.className='status local';el.querySelector('span').textContent='Modo local (só neste navegador)';}}
 
 // ---------- UI ----------
-const ui={view:'visao',open:{},vf:{de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100},af:{camp:'',ver:'',q:''},sf:{q:'',ord:'rp'},editCusto:null,pending:[],ff:{q:''}};
-const VIEWS=['visao','importar','vendas','anuncios','ads','gastos','folha','rateio','fechamentos','full','regras'];
+const ui={view:'resumo',apres:(()=>{try{return localStorage.getItem('lb_apres')==='1';}catch(e){return false;}})(),open:{},vf:{de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100},af:{camp:'',ver:'',q:''},sf:{q:'',ord:'rp'},editCusto:null,pending:[],ff:{q:''}};
+const VIEWS=['resumo','visao','importar','vendas','anuncios','ads','gastos','folha','rateio','fechamentos','full','regras'];
 let A=null,renderT=null;
 function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(render,30);}
-function routeFromHash(){const h=(location.hash||'').replace('#','');ui.view=VIEWS.includes(h)?h:'visao';}
+function routeFromHash(){const h=(location.hash||'').replace('#','');ui.view=VIEWS.includes(h)?h:'resumo';}
 window.addEventListener('hashchange',()=>{routeFromHash();render();window.scrollTo(0,0);});
 
 function render(){
@@ -604,7 +636,8 @@ function render(){
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.v===ui.view));
   const nAlert=countAlerts();const tabG=document.querySelector('#tabs a[data-v=gastos]');tabG.innerHTML='Gastos'+(nAlert.dup?` <span class="badge warn">${nAlert.dup}</span>`:'');
   const app=document.getElementById('app');
-  const fn={visao:vVisao,importar:vImportar,vendas:vVendas,anuncios:vAnuncios,ads:vAds,gastos:vGastos,folha:vFolha,rateio:vRateio,fechamentos:vFech,full:vFull,regras:vRegras}[ui.view];
+  document.body.classList.toggle('apres',!!ui.apres);
+  const fn={resumo:vResumo,visao:vVisao,importar:vImportar,vendas:vVendas,anuncios:vAnuncios,ads:vAds,gastos:vGastos,folha:vFolha,rateio:vRateio,fechamentos:vFech,full:vFull,regras:vRegras}[ui.view];
   app.innerHTML=`<section data-view="${ui.view}">${fn()}</section>`;
   bindCommon();
 }
@@ -612,13 +645,121 @@ function countAlerts(){return{dup:A.custos.filter(c=>c.flags&&c.flags.length).le
 function hasData(){return A.rows.length>0;}
 function emptyHint(){return `<div class="empty">Nenhuma venda importada ainda. Vá em <a href="#importar">Importar</a> e solte aqui o relatório de vendas do Mercado Livre (xlsx) e o relatório de anúncios patrocinados (Ads).</div>`;}
 
+// ----- comparação mensal -----
+function monthStats(ym,maxDay){
+  const ini=ym+'-01';const fim=ym+'-'+pad(Math.min(maxDay||31,monthEnd(ym)));
+  const s={ym,ini,fim,n:0,nCancel:0,un:0,rp:0,tot:0,custoProd:0,emb:0,adsAttr:0,lucroLinhas:0,porDia:{}};
+  A.eff.forEach(r=>{if(!r.d||r.d<ini||r.d>fim)return;if(r.cancel)s.nCancel++;else{s.n++;s.un+=r.un;}s.rp+=r.eff.rp;s.tot+=r.eff.tot;s.custoProd+=r.custoProd;s.emb+=r.emb;s.adsAttr+=r.ads;s.lucroLinhas+=r.lucro;const dd=+r.d.slice(8,10);s.porDia[dd]=(s.porDia[dd]||0)+r.lucro;});
+  s.gastos=0;s.gastosAds=0;A.custos.forEach(c=>{if(!c.ini||!c.fim||!c.valor)return;const od=overlapDays(c.ini,c.fim,ini,fim);if(!od)return;const v=(+c.valor)*od/(dayDiff(c.ini,c.fim)+1);s.gastos+=v;if(c.tipo==='Ads')s.gastosAds+=v;});
+  s.ml=s.rp-s.tot;s.lucro=s.tot-s.custoProd-s.emb-s.gastos;s.margem=s.rp?s.lucro/s.rp*100:0;s.ticket=s.n?s.rp/s.n:0;s.dias=dayDiff(ini,fim)+1;
+  return s;
+}
+function periodoAtual(){
+  if(!A.maxD)return null;const ym=A.maxD.slice(0,7);const day=+A.maxD.slice(8,10);const parcial=day<monthEnd(ym);
+  const [y,m]=ym.split('-').map(Number);const prevYm=m===1?(y-1)+'-12':y+'-'+pad(m-1);
+  const cur=monthStats(ym,parcial?day:null),prev=monthStats(prevYm,parcial?day:null),prevFull=monthStats(prevYm,null);
+  return{ym,prevYm,parcial,day,cur,prev,prevFull,rotulo:parcial?`até o dia ${day}`:'mês completo',rotPrev:parcial?`${fmtYM(prevYm)} até o dia ${day}`:fmtYM(prevYm)};
+}
+function delta(cur,prev,inv){if(!prev)return '<span class="delta flat">sem base</span>';const p=(cur-prev)/Math.abs(prev)*100;const up=p>=0;const good=inv?!up:up;const cl=Math.abs(p)<1?'flat':good?'up':'down';return `<span class="delta ${cl}">${up?'▲':'▼'} ${Math.abs(p).toFixed(0)}%</span>`;}
+
+// ----- Resumo (tela simples) -----
+function vResumo(){
+  if(!hasData())return `<h2>Resumo</h2>${emptyHint()}`;
+  const P=periodoAtual();const c=P.cur,p=P.prev;const cfg=A.cfg;
+  const semaforos=[];
+  const vendDelta=p.rp?(c.rp-p.rp)/p.rp*100:null;
+  semaforos.push({cls:vendDelta==null?'info':vendDelta>=0?'good':vendDelta>-15?'warn':'bad',href:'#vendas',t:`Vendemos ${fmtBRL(c.rp)} em ${fmtYM(P.ym)} (${fmtN(c.n)} vendas)`,s:vendDelta==null?`${P.rotulo}; sem mês anterior para comparar`:`${vendDelta>=0?'▲ '+vendDelta.toFixed(0)+'% a mais':'▼ '+Math.abs(vendDelta).toFixed(0)+'% a menos'} que ${P.rotPrev}`});
+  semaforos.push({cls:c.margem>=cfg.fullMinMargem?'good':c.margem>=10?'warn':'bad',href:'#visao',t:`Sobrou ${fmtBRL(c.lucro)} de lucro (${fmtP(c.margem,0)} da receita)`,s:`Total ML ${fmtBRL(c.tot)} − produtos ${fmtBRL(c.custoProd+c.emb)} − gastos ${fmtBRL(c.gastos)}${A.semCusto.length?' · estimado: '+A.semCusto.length+' produtos sem custo cadastrado':''}${p.rp?' · '+delta(c.lucro,p.lucro).replace(/<[^>]+>/g,'')+' vs '+P.rotPrev:''}`});
+  const adsNao=A.skuList.filter(s=>s.adsVer&&s.adsVer.code==='nao'),adsLim=A.skuList.filter(s=>s.adsVer&&s.adsVer.code==='limite');
+  if(A.adsRows.length)semaforos.push({cls:adsNao.length===0?'good':adsNao.length<=2?'warn':'bad',href:'#ads',t:adsNao.length?`O Ads está comendo a margem em ${adsNao.length} anúncio${adsNao.length>1?'s':''}`:'O Ads está pagando',s:adsNao.length?`${adsNao.slice(0,4).map(s=>s.sku).join(', ')}${adsNao.length>4?'…':''} · ACOS geral ${fmtP(A.adsT.acos,0)}${adsLim.length?' · '+adsLim.length+' no limite':''}`:`ACOS geral ${fmtP(A.adsT.acos,0)}: cada R$ 1 em anúncio trouxe R$ ${A.adsT.roas?A.adsT.roas.toFixed(1):'—'} em vendas${adsLim.length?' · '+adsLim.length+' no limite':''}`});
+  else semaforos.push({cls:'',href:'#importar',t:'Sem relatório de Ads importado',s:'Importe o relatório de anúncios patrocinados para avaliar o Ads'});
+  const fullOk=A.skuList.filter(s=>s.fullVer.code==='ok'&&!s.fullNow);
+  semaforos.push({cls:fullOk.length?'good':'',href:'#full',t:fullOk.length?`${fullOk.length} produto${fullOk.length>1?'s':''} com perfil para ir ao Full`:'Nenhum produto novo com perfil para o Full agora',s:fullOk.length?fullOk.slice(0,5).map(s=>s.sku).join(', '):`Precisa girar ${cfg.fullMinUnidades30}+ unidades em 30 dias com margem acima de ${cfg.fullMinMargem}%`});
+  const faltam=A.winList.reduce((a,w)=>a+Math.max(0,w.faltam),0);
+  semaforos.push({cls:'info',href:'#fechamentos',t:`Falta receber ${fmtBRL(faltam)} do Mercado Livre`,s:A.winList.length?`Soma dos períodos ainda não pagos; próximo: ${(A.winList.find(w=>w.faltam>0)||{}).label||'—'}`:'Nenhuma data de liberação nas vendas importadas'});
+  const dup=A.custos.filter(x=>x.flags.length);
+  semaforos.push({cls:dup.length?'bad':'good',href:'#gastos',t:dup.length?`${dup.length} gasto${dup.length>1?'s':''} repetido${dup.length>1?'s':''} para conferir`:'Nenhum gasto repetido',s:dup.length?dup.slice(0,3).map(x=>x.desc||x.tipo).join('; '):`${A.custos.length} gastos registrados, ${fmtBRL(A.gastosTotal)} no total`});
+  if(A.abaixoCusto.length)semaforos.push({cls:'bad',href:'#anuncios',t:`${A.abaixoCusto.length} produto${A.abaixoCusto.length>1?'s':''} vendendo abaixo do custo`,s:A.abaixoCusto.slice(0,4).map(s=>`${s.sku}: preço mínimo ${fmtBRL(s.precoMinimo)}`).join(' · ')});
+  else if(A.margemBaixa.length)semaforos.push({cls:'warn',href:'#anuncios',t:`${A.margemBaixa.length} produto${A.margemBaixa.length>1?'s':''} com margem abaixo de ${cfg.margemAlerta}%`,s:A.margemBaixa.slice(0,4).map(s=>`${s.sku} (${fmtP(s.margem,0)})`).join(' · ')});
+  // meta do mês
+  let metaHtml='';if(+cfg.metaReceita||+cfg.metaLucro){const diasMes=monthEnd(P.ym),diasPass=P.parcial?P.day:diasMes;
+    const ritmo=(v)=>v/diasPass*diasMes;const barra=(v,m,rot)=>{const pct=Math.min(100,m?v/m*100:0);const proj=ritmo(v);return `<div><div class="row between"><b>${rot}</b><span class="small">${fmtBRL(v)} de ${fmtBRL(m)} (${pct.toFixed(0)}%)</span></div><div class="meter" style="height:10px"><i style="width:${pct}%;background:${proj>=m?'var(--good)':proj>=m*0.85?'var(--warn)':'var(--bad)'}"></i></div><div class="small muted">No ritmo atual (${diasPass} de ${diasMes} dias) fecha em <b>${fmtBRL(proj)}</b>${P.parcial?'':' · mês encerrado'}</div></div>`;};
+    metaHtml=`<div class="card"><h3>Meta de ${fmtYM(P.ym)}</h3><div class="grid g2">${+cfg.metaReceita?barra(c.rp,+cfg.metaReceita,'Receita'):''}${+cfg.metaLucro?barra(c.lucro,+cfg.metaLucro,'Lucro'):''}</div></div>`;}
+  else metaHtml=`<p class="small muted noapres">Defina a meta mensal de receita e lucro em <a href="#regras">Regras</a> para ver o ritmo do mês aqui.</p>`;
+  // top e piores
+  const top=A.skuList.filter(s=>s.n>0).sort((a,b)=>b.lucro-a.lucro).slice(0,5);
+  function acao(s){const a=[];if(s.adsVer&&s.adsVer.code==='nao')a.push('Pausar ou reduzir o Ads');if(s.lucro<0)a.push('Dá prejuízo: rever preço ou custo');else if(!s.custoEstimado&&s.margem<10)a.push('Margem baixa: subir o preço');if(s.cancelPct>cfg.fullMaxCancel&&s.nTotal>=5)a.push('Muitos cancelamentos: checar qualidade e prazo');if(s.un30prev&&s.un30<s.un30prev*0.7)a.push('Vendas caindo: revisar fotos, título e preço');if(s.fullVer.code==='ok'&&!s.fullNow)a.push('Enviar ao Full');return a;}
+  function score(s){return (s.adsVer&&s.adsVer.code==='nao'?3:0)+(s.lucro<0?3:0)+(!s.custoEstimado&&s.margem<10?2:0)+(s.cancelPct>cfg.fullMaxCancel&&s.nTotal>=5?2:0)+(s.un30prev&&s.un30<s.un30prev*0.7?1:0);}
+  const piores=A.skuList.filter(s=>s.n>0&&score(s)>0).sort((a,b)=>score(b)-score(a)||a.lucro-b.lucro).slice(0,5);
+  const card=(s,neg)=>`<a class="topcard" href="#anuncios" data-act="goto-sku" data-sku="${esc(s.sku)}" style="text-decoration:none;color:inherit"><span class="n" title="${esc(s.tit)}">${esc(s.sku)}</span><span class="big ${cls(s.lucro)}">${fmtBRL(s.lucro)}</span><span class="small muted">${fmtN(s.n)} vendas · margem ${fmtP(s.margem,0)}${s.custoEstimado?'*':''} · ${s.un30} un/30d</span>${neg?`<span class="act">→ ${acao(s).join(' · ')||'Acompanhar'}</span>`:`<span class="act">${s.adsVer?s.adsVer.label+' no Ads':'Sem Ads'} · ${s.fullVer.label}</span>`}</a>`;
+  return `<div class="row between"><h2>Resumo de ${fmtYM(P.ym)} <span class="muted small" style="font-family:var(--body);font-weight:400">${P.rotulo}</span></h2>
+    <div class="row"><span class="muted small">Dados até ${fmtD(A.maxD)}</span><button class="btn sm" data-act="apres">${ui.apres?'Sair da apresentação':'Modo apresentação'}</button></div></div>
+  <div class="grid" style="gap:8px">${semaforos.map(s=>`<a class="sem ${s.cls}" href="${s.href}"><i></i><span><b>${esc(s.t)}</b><span class="sub">${esc(s.s)}</span></span></a>`).join('')}</div>
+  ${metaHtml}
+  <div class="tiles">
+    <div class="tile"><div class="lbl">Vendas</div><div class="val">${fmtN(c.n)}</div><div class="sub">${delta(c.n,p.n)} vs ${P.rotPrev}</div></div>
+    <div class="tile"><div class="lbl">Receita</div><div class="val">${fmtBRL(c.rp)}</div><div class="sub">${delta(c.rp,p.rp)}</div></div>
+    <div class="tile"><div class="lbl">Total ML (cai na conta)</div><div class="val">${fmtBRL(c.tot)}</div><div class="sub">${delta(c.tot,p.tot)}</div></div>
+    <div class="tile"><div class="lbl">Lucro</div><div class="val ${cls(c.lucro)}">${fmtBRL(c.lucro)}</div><div class="sub">${delta(c.lucro,p.lucro)}</div></div>
+    <div class="tile"><div class="lbl">Ticket médio</div><div class="val">${fmtBRL(c.ticket)}</div><div class="sub">${delta(c.ticket,p.ticket)}</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Vendas por semana (Total ML)</h3>${chartSemanas()}</div>
+    <div class="card"><h3>Lucro acumulado: ${fmtYM(P.ym)} × ${fmtYM(P.prevYm)}</h3>${chartAcumulado(P)}</div>
+  </div>
+  <div class="card"><h3>Para onde vai cada R$ 100 vendidos em ${fmtYM(P.ym)}</h3>${chartComposicao(c)}</div>
+  <div class="grid g2">
+    <div class="card"><h3>Os 5 que mais dão lucro</h3><div class="grid" style="gap:8px">${top.map(s=>card(s,false)).join('')||'<p class="muted">—</p>'}</div></div>
+    <div class="card"><h3>Os 5 que precisam de ação</h3><div class="grid" style="gap:8px">${piores.map(s=>card(s,true)).join('')||'<p class="muted">Nenhum produto com alerta.</p>'}</div></div>
+  </div>
+  <p class="muted small">* custo do produto não cadastrado: lucro estimado. Clique em qualquer frase ou card para ver o detalhe.</p>`;
+}
+function weekStart(d){const t=new Date(Date.parse(d+'T00:00:00Z'));const w=(t.getUTCDay()+6)%7;t.setUTCDate(t.getUTCDate()-w);return t.toISOString().slice(0,10);}
+function chartSemanas(){
+  const ws={};A.money.forEach(r=>{if(!r.d)return;const k=weekStart(r.d);const o=ws[k]||(ws[k]={k,tot:0,n:0});o.tot+=r.tot||0;o.n++;});
+  const list=Object.values(ws).sort((a,b)=>a.k<b.k?-1:1).slice(-10);if(!list.length)return '';
+  const W=560,H=220,pl=56,pr=12,pt=14,pb=34;const max=Math.max(...list.map(m=>m.tot))*1.1||1;const iw=(W-pl-pr)/list.length;const bw=Math.min(40,iw*0.62);
+  let g='';for(let i=0;i<=4;i++){const v=max*i/4;const y=pt+(H-pt-pb)*(1-v/max);g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0)}</text>`;}
+  const last=list[list.length-1];
+  const bars=list.map((m,i)=>{const h=(H-pt-pb)*m.tot/max;const x=pl+i*iw+(iw-bw)/2;const y=H-pb-h;const lab=m.k.slice(8,10)+'/'+m.k.slice(5,7);return `<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" data-tip="Semana de ${fmtD(m.k)} a ${fmtD(addDays(m.k,6))}: ${fmtBRL(m.tot)} em ${m.n} vendas"/>${m===last?`<text class="lbl" x="${x+bw/2}" y="${y-5}" text-anchor="middle">${(m.tot/1000).toFixed(1)}k</text>`:''}<text x="${x+bw/2}" y="${H-pb+16}" text-anchor="middle">${lab}</text>`;}).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Total ML por semana">${g}<line class="axis" x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}"/>${bars}</svg><p class="small muted">Semanas começam na segunda. A última pode estar incompleta.</p>`;
+}
+function chartAcumulado(P){
+  const cur=P.cur,prev=P.prevFull;const nd=Math.max(monthEnd(P.ym),monthEnd(P.prevYm));
+  const acc=(s,n)=>{let a=0;const out=[];for(let d=1;d<=n;d++){a+=s.porDia[d]||0;out.push(a);}return out;};
+  const ac=acc(cur,P.parcial?P.day:monthEnd(P.ym)),ap=acc(prev,monthEnd(P.prevYm));
+  const all=ac.concat(ap);const max=Math.max(...all,1),min=Math.min(...all,0);
+  const W=560,H=220,pl=56,pr=48,pt=14,pb=30;const sx=d=>pl+(d-1)/(nd-1)*(W-pl-pr);const sy=v=>pt+(H-pt-pb)*(1-(v-min)/(max-min||1));
+  let g='';for(let i=0;i<=4;i++){const v=min+(max-min)*i/4;const y=sy(v);g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${Math.abs(v)>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0)}</text>`;}
+  const path=arr=>arr.map((v,i)=>(i?'L':'M')+sx(i+1).toFixed(1)+' '+sy(v).toFixed(1)).join(' ');
+  const xt=[1,5,10,15,20,25,nd].map(d=>`<text x="${sx(d)}" y="${H-pb+16}" text-anchor="middle">${d}</text>`).join('');
+  const endC=ac.length?`<circle cx="${sx(ac.length)}" cy="${sy(ac[ac.length-1])}" r="4" fill="var(--s1)"/><text class="lbl" x="${sx(ac.length)+7}" y="${sy(ac[ac.length-1])+4}">${(ac[ac.length-1]/1000).toFixed(1)}k</text>`:'';
+  const endP=ap.length&&prev.n?`<text x="${sx(ap.length)+7}" y="${sy(ap[ap.length-1])+4}" fill="var(--prev)">${(ap[ap.length-1]/1000).toFixed(1)}k</text>`:'';
+  const pts=ac.map((v,i)=>`<rect x="${sx(i+1)-6}" y="${pt}" width="12" height="${H-pt-pb}" fill="transparent" data-tip="Dia ${i+1}: ${fmtBRL(v)} acumulado em ${fmtYM(P.ym)}${ap[i]!=null&&prev.n?' · '+fmtBRL(ap[i])+' em '+fmtYM(P.prevYm):''}"/>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lucro acumulado no mês">${g}<line class="axis" x1="${pl}" x2="${W-pr}" y1="${sy(0)}" y2="${sy(0)}"/>${xt}${prev.n?`<path class="ln prev" d="${path(ap)}"/>`:''}<path class="ln cur" d="${path(ac)}"/>${endC}${endP}${pts}</svg>
+  <div class="legend"><span><i style="background:var(--s1)"></i>${fmtYM(P.ym)}</span><span><i style="background:var(--prev)"></i>${fmtYM(P.prevYm)}${prev.n?'':' (sem dados)'}</span><span class="muted">lucro por venda somado dia a dia</span></div>`;
+}
+function chartComposicao(c){
+  if(!c.rp)return '<p class="muted">Sem vendas no período.</p>';
+  const segs=[{n:'Mercado Livre (tarifas, frete, reembolsos)',v:c.ml,col:'var(--s1)'},{n:'Produto e embalagem',v:c.custoProd+c.emb,col:'var(--s2)'},{n:'Lucro',v:Math.max(0,c.lucro),col:'var(--s3)'},{n:'Outros gastos',v:c.gastos-c.gastosAds,col:'var(--s4)'},{n:'Ads',v:c.gastosAds,col:'var(--s5)'}];
+  const total=segs.reduce((a,s)=>a+Math.max(0,s.v),0)||1;const W=800,H=64;let x=0;
+  const rects=segs.map(s=>{const w=Math.max(0,s.v)/total*W;const r=`<rect x="${x+1}" y="8" width="${Math.max(0,w-2)}" height="44" rx="3" fill="${s.col}" data-tip="${esc(s.n)}: ${fmtBRL(s.v)} (${(s.v/c.rp*100).toFixed(0)}%)"/>${w>60?`<text x="${x+w/2}" y="35" text-anchor="middle" fill="#fff" font-weight="700" style="font-size:13px">R$ ${(s.v/c.rp*100).toFixed(0)}</text>`:''}`;x+=w;return r;}).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Composição de cada R$ 100 vendidos">${rects}</svg>
+  <div class="legend">${segs.map(s=>`<span><i style="background:${s.col}"></i>${esc(s.n)}: <b>R$ ${(s.v/c.rp*100).toFixed(0)}</b></span>`).join('')}</div>
+  ${c.lucro<0?`<p class="small" style="color:var(--bad);margin-top:6px">Prejuízo no período: ${fmtBRL(c.lucro)}. Os custos passam de R$ 100.</p>`:''}
+  <p class="small muted" style="margin-top:6px">De cada R$ 100 que o cliente paga, quanto fica com o ML, quanto é produto, quanto vai para Ads e outros gastos, e quanto sobra. Ads e outros gastos vêm da aba Gastos, rateados pelos dias do período.</p>`;
+}
+
 // ----- Visão geral -----
 function vVisao(){
   const T=A.T,cfg=A.cfg;
   if(!hasData())return `<h2>Visão geral</h2>${emptyHint()}${howCard()}`;
+  const P=periodoAtual();const dv=(k)=>P&&P.prev.n?`<div class="small">${fmtYM(P.ym)} ${P.rotulo}: ${delta(P.cur[k],P.prev[k])} vs ${P.rotPrev}</div>`:'';
   const alerts=[];
   const dup=A.custos.filter(c=>c.flags.length);if(dup.length)alerts.push(`<div class="alert bad"><b>${dup.length} gasto(s) com suspeita de repetição.</b> Confira em <a href="#gastos">Gastos</a> antes de fechar as contas.</div>`);
   if(A.semCusto.length)alerts.push(`<div class="alert"><b>${A.semCusto.length} anúncio(s) sem custo do produto cadastrado.</b> Sem o custo, o lucro e o limite de ACOS ficam estimados. Cadastre em <a href="#anuncios">Anúncios</a>.</div>`);
+  if(A.abaixoCusto.length)alerts.push(`<div class="alert bad"><b>${A.abaixoCusto.length} produto(s) vendendo abaixo do custo + tarifas:</b> ${A.abaixoCusto.slice(0,6).map(s=>esc(s.sku)+' (preço mínimo '+fmtBRL(s.precoMinimo)+')').join(', ')}${A.abaixoCusto.length>6?'…':''}. Suba o preço ou reveja o custo.</div>`);
+  if(A.margemBaixa.length)alerts.push(`<div class="alert"><b>${A.margemBaixa.length} produto(s) com margem abaixo de ${cfg.margemAlerta}%:</b> ${A.margemBaixa.slice(0,6).map(s=>esc(s.sku)+' ('+fmtP(s.margem,0)+')').join(', ')}${A.margemBaixa.length>6?'…':''}.</div>`);
   const adsNao=A.skuList.filter(s=>s.adsVer&&s.adsVer.code==='nao');if(adsNao.length)alerts.push(`<div class="alert bad"><b>${adsNao.length} anúncio(s) em que o Ads não compensa:</b> ${adsNao.slice(0,6).map(s=>esc(s.sku)).join(', ')}${adsNao.length>6?'…':''}. Veja <a href="#ads">Ads</a>.</div>`);
   const fullOk=A.skuList.filter(s=>s.fullVer.code==='ok'&&!s.fullNow);if(fullOk.length)alerts.push(`<div class="alert good"><b>${fullOk.length} anúncio(s) com perfil para enviar ao Full:</b> ${fullOk.slice(0,6).map(s=>esc(s.sku)).join(', ')}${fullOk.length>6?'…':''}. Veja <a href="#full">Full</a>.</div>`);
   const semSku=A.adsRows.filter(a=>!a.sku).length;if(semSku)alerts.push(`<div class="alert info"><b>${semSku} linha(s) do relatório de Ads sem SKU identificado.</b> Vincule em <a href="#ads">Ads</a> para o custo de Ads entrar no cálculo por anúncio.</div>`);
@@ -627,12 +768,12 @@ function vVisao(){
   <div class="row between"><h2>Visão geral</h2><span class="muted small">Vendas de ${fmtD(A.minD)} a ${fmtD(A.maxD)} · ${fmtN(A.rows.length)} linhas importadas</span></div>
   ${alerts.length?`<div class="alerts">${alerts.join('')}</div>`:''}
   <div class="tiles">
-    <div class="tile"><div class="lbl">Vendas</div><div class="val">${fmtN(T.n)}</div><div class="sub">${fmtN(T.un)} unidades · ${fmtN(T.nCancel)} canceladas/devolvidas</div></div>
-    <div class="tile"><div class="lbl">Receita por produtos</div><div class="val">${fmtBRL(T.rp)}</div><div class="sub">preço cheio dos produtos</div></div>
-    <div class="tile"><div class="lbl">Total ML (repasse)</div><div class="val">${fmtBRL(T.tot)}</div><div class="sub">já descontadas tarifas e envios · ${fmtP(T.rp?T.tot/T.rp*100:0)} da receita</div></div>
+    <div class="tile"><div class="lbl">Vendas</div><div class="val">${fmtN(T.n)}</div><div class="sub">${fmtN(T.un)} unidades · ${fmtN(T.nCancel)} canceladas/devolvidas</div>${dv('n')}</div>
+    <div class="tile"><div class="lbl">Receita por produtos</div><div class="val">${fmtBRL(T.rp)}</div><div class="sub">preço cheio dos produtos</div>${dv('rp')}</div>
+    <div class="tile"><div class="lbl">Total ML (repasse)</div><div class="val">${fmtBRL(T.tot)}</div><div class="sub">já descontadas tarifas e envios · ${fmtP(T.rp?T.tot/T.rp*100:0)} da receita</div>${dv('tot')}</div>
     <div class="tile"><div class="lbl">Custo dos produtos</div><div class="val">${fmtBRL(T.custoProd+T.emb)}</div><div class="sub">${A.semCusto.length?A.semCusto.length+' SKU(s) sem custo':'produto + embalagem'}</div></div>
     <div class="tile"><div class="lbl">Gastos registrados</div><div class="val">${fmtBRL(T.gastos)}</div><div class="sub">${Object.keys(A.gastosPorTipo).map(t=>t+' '+fmtBRL(A.gastosPorTipo[t])).join(' · ')||'nenhum'}</div></div>
-    <div class="tile"><div class="lbl">Lucro estimado</div><div class="val ${cls(T.lucro)}">${fmtBRL(T.lucro)}</div><div class="sub">margem ${fmtP(T.margem)} sobre a receita</div></div>
+    <div class="tile"><div class="lbl">Lucro estimado</div><div class="val ${cls(T.lucro)}">${fmtBRL(T.lucro)}</div><div class="sub">margem ${fmtP(T.margem)} sobre a receita</div>${dv('lucro')}</div>
   </div>
   <div class="grid g2">
     <div class="card"><h3>Total ML por mês (data da venda)</h3>${chartMes()}</div>
@@ -677,8 +818,8 @@ function vImportar(){
       </div>
     </div>
     <div class="card"><h3>Importações feitas</h3>
-      ${imps.length?`<div class="tbl-wrap"><table><thead><tr><th>Quando</th><th>Arquivo</th><th>Tipo</th><th class="r">Linhas</th><th>Período</th><th></th></tr></thead><tbody>
-      ${imps.map(i=>`<tr><td>${fmtDT(i.em)}</td><td>${esc(i.nome)}</td><td>${i.tipo==='ads'?'Ads':'Vendas'}</td><td class="r">${fmtN(i.n)}</td><td>${fmtD(i.de)} a ${fmtD(i.ate)}</td><td><button class="btn sm danger" data-act="rm-import" data-id="${i.id}">Remover</button></td></tr>`).join('')}
+      ${imps.length?`<div class="tbl-wrap"><table><thead><tr><th>Quando</th><th>Arquivo</th><th>Tipo</th><th class="r">Linhas</th><th>Período</th><th>O que mudou</th><th></th></tr></thead><tbody>
+      ${imps.map(i=>`<tr><td>${fmtDT(i.em)}</td><td>${esc(i.nome)}</td><td>${i.tipo==='ads'?'Ads':'Vendas'}</td><td class="r">${fmtN(i.n)}</td><td class="num">${fmtD(i.de)} a ${fmtD(i.ate)}</td><td class="small">${i.diff?esc(diffTxt(i.diff)):'—'}</td><td><button class="btn sm danger" data-act="rm-import" data-id="${i.id}">Remover</button></td></tr>`).join('')}
       </tbody></table></div>`:'<p class="muted">Nenhuma importação ainda.</p>'}
     </div>
   </div>
@@ -689,13 +830,19 @@ function vImportar(){
     <p class="muted small" style="margin-top:8px">O backup leva vendas, Ads, gastos, custos cadastrados e regras. Restaurar substitui tudo.</p>
   </div>`;
 }
+function diffVendas(rows){
+  const d={novas:0,atualizadas:0,canceladas:0,reembolsos:0,deltaTot:0};
+  rows.forEach(r=>{const old=state.vendas[r.id];if(!old){d.novas++;return;}const ca=(old.ca||0)!==(r.ca||0);if(old.st!==r.st||(old.tot||0)!==(r.tot||0)||ca)d.atualizadas++;if(!isCancel(old.st)&&isCancel(r.st))d.canceladas++;if(ca)d.reembolsos++;d.deltaTot+=(r.tot||0)-(old.tot||0);});
+  return d;
+}
+function diffTxt(d){if(!d)return '';return `${d.novas} novas · ${d.atualizadas} atualizadas (${d.canceladas} viraram cancelada/devolvida, ${d.reembolsos} com reembolso) · Total ML ${d.deltaTot>=0?'+':''}${fmtBRL(d.deltaTot)}`;}
 function renderPending(){
   if(!ui.pending.length)return '';
   return ui.pending.map((p,i)=>{
     if(p.erro)return `<div class="alert bad" style="margin-top:12px"><b>${esc(p.nome)}</b>: ${esc(p.erro)}</div>`;
     const parts=p.parts.map((pt,j)=>{
-      if(pt.tipo==='vendas'){const novas=pt.rows.filter(r=>!state.vendas[r.id]).length;const ds=pt.rows.map(r=>r.d||(r.dt||'').slice(0,10)).filter(Boolean).sort();
-        return `<div class="kv"><b>Tipo</b><span>Vendas (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} · ${novas} novas · ${pt.rows.length-novas} já existem (serão atualizadas)</span><b>Período</b><span>${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])}</span></div>`;}
+      if(pt.tipo==='vendas'){const d=diffVendas(pt.rows);const ds=pt.rows.map(r=>(r.dt||'').slice(0,10)).filter(Boolean).sort();
+        return `<div class="kv"><b>Tipo</b><span>Vendas (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} · ${pt.rows.length-d.novas} já existem</span><b>O que muda</b><span>${diffTxt(d)}</span><b>Período</b><span>${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])}</span></div>`;}
       const inv=pt.rows.reduce((a,r)=>a+r.inv,0);const de=pt.rows.map(r=>r.de).filter(Boolean).sort()[0],ate=pt.rows.map(r=>r.ate).filter(Boolean).sort().pop();
       const dupAds=A.custos.filter(c=>c.tipo==='Ads'&&c.ini&&c.fim&&de&&ate&&overlapDays(c.ini,c.fim,de,ate)>0);
       return `<div class="kv"><b>Tipo</b><span>Ads (aba “${esc(pt.sheet)}”)</span><b>Linhas</b><span>${pt.rows.length} anúncios/campanhas</span><b>Período</b><span>${fmtD(de)} a ${fmtD(ate)}</span><b>Investimento</b><span>${fmtBRL(inv)}</span></div>
@@ -722,10 +869,11 @@ async function commitPending(i){
   try{
     for(let j=0;j<p.parts.length;j++){const pt=p.parts[j];
       if(pt.tipo==='vendas'){
+        const diff=diffVendas(pt.rows);
         const m=Object.assign({},state.vendas);pt.rows.forEach(r=>{const old=m[r.id];m[r.id]=old?Object.assign({},old,r,{imp:old.imp||r.imp}):r;});
         await Store.writeRows('vendas',m);
         const ds=pt.rows.map(r=>(r.dt||'').slice(0,10)).filter(Boolean).sort();
-        await Store.put('imports',p.impId+'v'+j,{nome:p.nome,tipo:'vendas',n:pt.rows.length,de:ds[0]||null,ate:ds[ds.length-1]||null,em:new Date().toISOString().slice(0,16)});
+        await Store.put('imports',p.impId+'v'+j,{nome:p.nome,tipo:'vendas',n:pt.rows.length,de:ds[0]||null,ate:ds[ds.length-1]||null,em:new Date().toISOString().slice(0,16),diff});
       }else{
         const m=Object.assign({},state.ads);pt.rows.forEach(r=>{m[r.key]=r;});
         await Store.writeRows('ads',m);
@@ -828,7 +976,18 @@ function vAnuncios(){
   <div class="card"><div class="filters"><label>Buscar<input type="search" id="sf-q" value="${esc(f.q)}" placeholder="SKU ou título"></label>
   <label>Ordenar por<select id="sf-ord">${[['rp','Receita'],['lucro','Lucro'],['margem','Margem'],['un30','Giro (un/30d)'],['prob','Precisa de atenção'],['sku','SKU']].map(([k,l])=>`<option value="${k}" ${f.ord===k?'selected':''}>${l}</option>`).join('')}</select></label>
   <span class="muted small">* custo não cadastrado (lucro estimado)</span></div></div>
-  <div class="card">${tabelaSkus(list,false)}</div>`;
+  <div class="card">${tabelaSkus(list,false)}</div>
+  <div class="card"><details ${ui.loteOpen?'open':''} id="lote"><summary>Cadastro de custos em lote (${A.semCusto.length} sem custo)</summary>
+    <div class="grid g2" style="margin-top:10px">
+      <div><p class="small muted">Preencha o custo unitário (e embalagem, se diferente do padrão) e clique em Salvar todos. Só os que mudaram são gravados.</p>
+      <div class="tbl-wrap" style="max-height:420px;overflow:auto;margin-top:8px"><table><thead><tr><th>SKU</th><th class="r">Vendas</th><th class="r">Preço médio</th><th class="r">Custo unit.</th><th class="r">Embalagem</th></tr></thead><tbody>
+      ${A.skuList.filter(s=>s.sku).sort((a,b)=>(a.custoEstimado===b.custoEstimado?b.n-a.n:a.custoEstimado?-1:1)).map(s=>`<tr><td><span class="sku">${esc(s.sku)}</span><span class="t small muted" style="max-width:220px">${esc(s.tit)}</span></td><td class="r">${s.n}</td><td class="r">${fmtBRL(s.precoMed)}</td><td class="r"><input type="number" step="0.01" min="0" id="pl-custo-${s.pid}" data-sku="${esc(s.sku)}" value="${s.prod.custo!=null?s.prod.custo:''}" style="width:90px;text-align:right;padding:4px 6px"></td><td class="r"><input type="number" step="0.01" min="0" id="pl-emb-${s.pid}" value="${s.prod.emb!=null?s.prod.emb:''}" style="width:80px;text-align:right;padding:4px 6px"></td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" data-act="save-lote" ${Store.canWrite?'':'disabled'}>Salvar todos</button><span id="lote-status" class="small muted"></span></div></div>
+      <div><p class="small muted">Ou cole uma lista, uma linha por produto, no formato <code>SKU;custo</code> ou <code>SKU;custo;embalagem</code> (aceita vírgula ou tabulação, vindo do Excel). Depois clique em Aplicar: os campos da tabela são preenchidos e você confere antes de salvar.</p>
+      <textarea id="lote-txt" rows="10" placeholder="COP8;6,50&#10;amorporleitura;9,90;0,80" style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" data-act="aplicar-lote">Aplicar lista na tabela</button><span id="lote-aplicado" class="small muted"></span></div></div>
+    </div></details></div>`;
 }
 function skuDetail(s){
   const p=s.prod||{};const m=s.adsM;
@@ -983,6 +1142,7 @@ function vRegras(){
     <h4 style="margin:8px 0">Custos</h4><div class="form">${F('embalagemPadrao','Embalagem padrão por venda (R$)','0.01')}${F('custoPadraoPct','Custo estimado quando não cadastrado (% da receita)','1')}${F('acosLimitePadrao','Limite de ACOS quando sem custo (%)','1')}</div>
     <h4 style="margin:14px 0 8px">Ads</h4><div class="form">${F('adsMinImpressoes','Mín. impressões para julgar')}${F('adsMinCliques','Mín. cliques para julgar')}${F('adsCtrFraco','CTR fraco abaixo de (%)','0.01')}${F('adsCvrFraco','CVR fraco abaixo de (%)','0.1')}${F('adsFolga','“Compensa” até esta fração do limite (%)')}${F('adsInvestSemVenda','Investiu sem vender: não compensa a partir de (R$)','1')}</div>
     <h4 style="margin:14px 0 8px">Full</h4><div class="form">${F('fullMinUnidades30','Mín. unidades em 30 dias')}${F('fullMinMargem','Margem líquida mínima (%)')}${F('fullMaxCancel','Cancelamentos máx. (%)')}${F('fullMinVendas','Mín. vendas no histórico')}${F('fullPrecoFreteGratis','Frete grátis a partir de (R$)','1')}</div>
+    <h4 style="margin:14px 0 8px">Alertas e metas</h4><div class="form">${F('margemAlerta','Alertar margem abaixo de (%)','1')}${F('metaReceita','Meta mensal de receita (R$)','1')}${F('metaLucro','Meta mensal de lucro (R$)','1')}</div>
     <div class="row" style="margin-top:12px"><button class="btn primary" data-act="save-cfg" ${Store.canWrite?'':'disabled'}>Salvar regras</button><button class="btn" data-act="reset-cfg">Voltar ao padrão</button></div>
   </div>
   ${howCard()}`;
@@ -1137,10 +1297,21 @@ function bindCommon(){
   const app=document.getElementById('app');
   app.onclick=async ev=>{
     const el=ev.target.closest('[data-act]');if(!el)return;
-    if(ev.target.closest('input,select,button:not([data-act]),label,a'))if(!ev.target.closest('button[data-act]'))return;
+    if(ev.target.closest('input,select,label,summary,button:not([data-act]),a:not([data-act])'))if(!ev.target.closest('button[data-act]'))return;
+    if(el.tagName==='A')ev.preventDefault();
     const act=el.dataset.act;
     if(act==='toggle'){ui.open[el.dataset.k]=!ui.open[el.dataset.k];render();}
-    else if(act==='goto-sku'){ui.sf.q=el.dataset.sku;ui.open['s'+pidOf(el.dataset.sku)]=true;location.hash='#anuncios';}
+    else if(act==='goto-sku'){ui.sf.q=el.dataset.sku;ui.open['s'+pidOf(el.dataset.sku)]=true;if(location.hash==='#anuncios')render();else location.hash='#anuncios';}
+    else if(act==='apres'){ui.apres=!ui.apres;try{localStorage.setItem('lb_apres',ui.apres?'1':'0');}catch(e){}render();}
+    else if(act==='aplicar-lote'){const txt=document.getElementById('lote-txt').value;let ok=0,nf=[];const bySku={};A.skuList.forEach(s=>{bySku[norm(s.sku)]=s;});
+      txt.split(/\r?\n/).forEach(line=>{const parts=line.split(/[;\t,](?=\s*-?\d|\s*$)/).map(x=>x.trim());if(parts.length<2||!parts[0])return;const s=bySku[norm(parts[0])];if(!s){nf.push(parts[0]);return;}const cu=toNum(parts[1]),em=parts[2]!=null?toNum(parts[2]):null;const i1=document.getElementById('pl-custo-'+s.pid),i2=document.getElementById('pl-emb-'+s.pid);if(i1&&cu!=null){i1.value=cu;ok++;}if(i2&&em!=null)i2.value=em;});
+      ui.loteOpen=true;document.getElementById('lote-aplicado').textContent=`${ok} preenchido(s)`+(nf.length?` · não encontrados: ${nf.slice(0,8).join(', ')}${nf.length>8?'…':''}`:'')+'. Confira e clique em Salvar todos.';}
+    else if(act==='save-lote'){ui.loteOpen=true;const st=document.getElementById('lote-status');let n=0,err=0;const list=A.skuList.filter(s=>s.sku);
+      for(const s of list){const i1=document.getElementById('pl-custo-'+s.pid),i2=document.getElementById('pl-emb-'+s.pid);if(!i1)continue;const cu=i1.value===''?null:+i1.value,em=i2.value===''?null:+i2.value;const p=s.prod||{};
+        if((p.custo==null?null:+p.custo)===cu&&(p.emb==null?null:+p.emb)===em)continue;
+        const d=Object.assign({},p,{sku:s.sku,custo:cu,emb:em,mlbs:p.mlbs||[],obs:p.obs||''});delete d.id;
+        try{await Store.put('produtos',s.pid,d);n++;st.textContent=`Salvando… ${n}`;}catch(e){err++;}}
+      toast(`${n} produto(s) salvo(s)`+(err?`, ${err} com erro`:''));render();}
     else if(act==='vf-more'){ui.vf.lim+=200;render();}
     else if(act==='vf-clear'){ui.vf={de:'',ate:'',sku:'',st:'',pub:'',q:'',lim:100};render();}
     else if(act==='commit')await commitPending(+el.dataset.i);
@@ -1196,6 +1367,7 @@ function bindCommon(){
   if(drop){drop.onclick=e=>{if(e.target.tagName!=='INPUT')document.getElementById('file').click();};
     drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};drop.ondragleave=()=>drop.classList.remove('over');
     drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');handleFiles([...e.dataTransfer.files]);};}
+  const lote=document.getElementById('lote');if(lote)lote.addEventListener('toggle',()=>{ui.loteOpen=lote.open;});
   // tooltip do gráfico
   const tip=document.getElementById('tip');
   app.querySelectorAll('[data-tip]').forEach(n=>{n.addEventListener('mousemove',e=>{tip.textContent=n.dataset.tip;tip.style.display='block';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY+12)+'px';});n.addEventListener('mouseleave',()=>tip.style.display='none');});
